@@ -5,6 +5,7 @@ CallbackRegistry.events = {};
 addon.CallbackRegistry = CallbackRegistry;
 
 local tinsert = table.insert;
+local tremove = table.remove;
 local type = type;
 local ipairs = ipairs;
 
@@ -46,9 +47,79 @@ function CallbackRegistry:Trigger(event, ...)
     end
 end
 
+function CallbackRegistry:UnregisterCallback(event, callback, owner)
+    if self.events[event] then
+        local callbacks = self.events[event];
+        local i = 1;
+        local cb = callbacks[i];
+
+        if type(callback) == "string" then
+            if owner then
+                while cb do
+                    if cb[1] == 2 and cb[2] == callback and cb[3] == owner then
+                        tremove(callbacks, i);
+                    else
+                        i = i + 1;
+                    end
+                    cb = callbacks[i];
+                end
+            else
+                while cb do
+                    if cb[1] == 2 and cb[2] == callback then
+                        tremove(callbacks, i);
+                    else
+                        i = i + 1;
+                    end
+                    cb = callbacks[i];
+                end
+            end
+        else
+            while cb do
+                if cb[1] == 1 and cb[2] == callback then
+                    tremove(callbacks, i);
+                else
+                    i = i + 1;
+                end
+                cb = callbacks[i];
+            end
+        end
+    end
+end
+
+function CallbackRegistry:UnregisterEvent(event)
+    self.events[event] = nil;
+end
+
 function CallbackRegistry:RegisterTutorial(tutorialFlag, func, owner)
     local event = "Tutorial."..tutorialFlag;
     self:Register(event, func, owner);
+end
+
+
+local Processor = CreateFrame("Frame");
+
+local function Processor_OnUpdate(self, elapsed)
+    self:SetScript("OnUpdate", nil);
+    if self.triggerQueue and self.anyDelayedTrigger then
+        self.anyDelayedTrigger = nil;
+        for event, args in pairs(self.triggerQueue) do
+            CallbackRegistry:Trigger(event, args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+        end
+        self.triggerQueue = nil;
+    end
+end
+
+function CallbackRegistry:TriggerOnNextUpdate(event, ...)
+    --Use Case: in case Lua error appears and clogs other important processes
+    --Currently used by HelpTip
+    if self.events[event] then
+        if not Processor.anyDelayedTrigger then
+            Processor.triggerQueue = {};
+            Processor.anyDelayedTrigger = true;
+        end
+        Processor.triggerQueue[event] = {...};
+        Processor:SetScript("OnUpdate", Processor_OnUpdate);
+    end
 end
 
 
@@ -95,6 +166,9 @@ do  --AsyncCallback
             list = self.itemCallbacks;
         elseif event == "SPELL_DATA_LOAD_RESULT" then
             list = self.spellCallbacks;
+        elseif event == "TOOLTIP_DATA_UPDATE" then
+            list = self.npcCallbacks;
+            success = true;
         end
 
         if list and id and success then
@@ -142,6 +216,14 @@ do  --AsyncCallback
                 end
                 self:RunAllCallbacks(self.spellCallbacks);
                 self.spellCallbacks = nil;
+            end
+
+            if self.npcCallbacks then
+                if self.LoadNPC then
+                    self:UnregisterEvent("TOOLTIP_DATA_UPDATE");
+                end
+                self:RunAllCallbacks(self.npcCallbacks);
+                self.npcCallbacks = nil;
             end
         end
     end
@@ -203,6 +285,55 @@ do  --AsyncCallback
         end
         EL.t = 0;
         EL:SetScript("OnUpdate", EL.OnUpdate);
+    end
+
+
+    if C_TooltipInfo then
+        function CallbackRegistry:LoadNPC(creatureID, callback, isRequery)
+            local tooltipData = addon.TooltipAPI.GetHyperlink("unit:Creature-0-0-0-0-"..creatureID);
+            local dataInstanceID, newCallback;
+            if tooltipData and tooltipData.lines then
+                local name = tooltipData.lines[1].leftText;
+                if name and name ~= "" then
+                    callback(creatureID, name);
+                else
+                    dataInstanceID = tooltipData.dataInstanceID;
+                    newCallback = function()
+                        local tooltipData = addon.TooltipAPI.GetHyperlink("unit:Creature-0-0-0-0-"..creatureID);
+                        local name = tooltipData.lines[1].leftText;
+                        if name and name ~= "" then
+                            callback(creatureID, name);
+                        end
+                    end
+                end
+            elseif not isRequery then
+                dataInstanceID = 0;
+                newCallback = function()
+                    local tooltipData = addon.TooltipAPI.GetHyperlink("unit:Creature-0-0-0-0-"..creatureID);
+                    local name = tooltipData and tooltipData.lines and tooltipData.lines[1].leftText;
+                    if name and name ~= "" then
+                        callback(creatureID, name);
+                    end
+                end
+            end
+
+            if dataInstanceID and newCallback then
+                EL:AddCallback("npcCallbacks", dataInstanceID, newCallback);
+                EL:RegisterEvent("TOOLTIP_DATA_UPDATE");
+                if not EL.t then
+                    EL.t = 0;
+                end
+                if EL.t > 0 then
+                    --Extend the shutdown countdown because we usually acquire NPC name during log-in
+                    EL.t = -0.5;
+                end
+                EL:SetScript("OnUpdate", EL.OnUpdate);
+            end
+        end
+    else
+        function CallbackRegistry:LoadNPC()
+
+        end
     end
 end
 

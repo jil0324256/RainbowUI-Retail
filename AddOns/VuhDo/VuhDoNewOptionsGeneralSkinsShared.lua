@@ -85,7 +85,10 @@ local VUHDO_DEFAULT_PROFILES = {
 				["point"] = "TOPRIGHT",
 				["timer"] = true,
 				["isName"] = false, 
-				["isShowOnlyForFriendly"] = false, 
+				["isShowFriendly"] = true,
+				["isShowHostile"] = true,
+				["isHostileMine"] = true,
+				["isHostileOthers"] = true,
 				["xAdjust"] = -2,
 				["max_num"] = 3,
 				["blacklistModi"] = "ALT-CTRL-SHIFT",
@@ -696,6 +699,34 @@ local VUHDO_DEFAULT_PROFILES = {
 					["TR"] = 0.6,
 					["TO"] = 1,
 					["B"] = 0.3,
+					["O"] = 1,
+					["useBackground"] = true,
+					["isFullDuration"] = false,
+					["useText"] = true,
+				},
+				["HOT11"] = {
+					["TG"] = 0.443,
+					["countdownMode"] = 0,
+					["R"] = 0.890,
+					["TB"] = 0.063,
+					["G"] = 0.408,
+					["TR"] = 0.992,
+					["TO"] = 1,
+					["B"] = 0.133,
+					["O"] = 1,
+					["useBackground"] = true,
+					["isFullDuration"] = false,
+					["useText"] = true,
+				},
+				["HOT12"] = {
+					["TG"] = 0.676,
+					["countdownMode"] = 0,
+					["R"] = 0.2,
+					["TB"] = 0.598,
+					["G"] = 0.576,
+					["TR"] = 0.3,
+					["TO"] = 1,
+					["B"] = 0.498,
 					["O"] = 1,
 					["useBackground"] = true,
 					["isFullDuration"] = false,
@@ -1974,6 +2005,34 @@ local VUHDO_DEFAULT_PROFILES = {
 					["isFullDuration"] = false,
 					["useText"] = true,
 				},
+				["HOT11"] = {
+					["TG"] = 0.443,
+					["countdownMode"] = 1,
+					["R"] = 0.890,
+					["TB"] = 0.063,
+					["G"] = 0.408,
+					["TR"] = 0.992,
+					["TO"] = 1,
+					["B"] = 0.133,
+					["O"] = 1,
+					["useBackground"] = true,
+					["isFullDuration"] = false,
+					["useText"] = true,
+				},
+				["HOT12"] = {
+					["TG"] = 0.676,
+					["countdownMode"] = 1,
+					["R"] = 0.2,
+					["TB"] = 0.598,
+					["G"] = 0.576,
+					["TR"] = 0.3,
+					["TO"] = 1,
+					["B"] = 0.498,
+					["O"] = 1,
+					["useBackground"] = true,
+					["isFullDuration"] = false,
+					["useText"] = true,
+				},
 				["HOT_CHARGE_4"] = {
 					["TG"] = 1,
 					["R"] = 0.8,
@@ -2277,6 +2336,7 @@ end
 
 --
 function VUHDO_createNewLayoutName(aName, aUnitName)
+
 	local tIdx = 1;
 	local tLayout = { };
 	local tPrefix = aUnitName .. ": ";
@@ -2290,7 +2350,12 @@ function VUHDO_createNewLayoutName(aName, aUnitName)
 		tPrefix = aUnitName .. "(" .. tIdx .. "): ";
 	end
 
+	if VUHDO_strempty(aName) then
+		tNewName = strtrim(tNewName);
+	end
+
 	return tNewName;
+
 end
 
 
@@ -2632,6 +2697,7 @@ end
 
 --
 function VUHDO_loadProfile(aName)
+
 	VUHDO_loadProfileNoInit(aName);
 	VUHDO_initAllBurstCaches();
 	VUHDO_loadVariables();
@@ -2659,7 +2725,8 @@ function VUHDO_loadProfile(aName)
 		VUHDO_spellTraceUpdateEditBox(VuhDoNewOptionsGeneralSpellTraceStorePanelEditBox);
 	end
 
-	collectgarbage('collect');
+	collectgarbage("collect");
+
 end
 
 

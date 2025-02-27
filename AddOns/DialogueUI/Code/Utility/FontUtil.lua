@@ -49,6 +49,7 @@ local FONT_OBJECT_HEIGHT = {
     DUIFont_Quest_Gossip = HEIGHT_1,
     DUIFont_Quest_Quest = HEIGHT_1,
     DUIFont_Quest_Disabled = HEIGHT_1,
+    DUIFont_Quest_MultiLanguage = HEIGHT_1,
 
     DUIFont_Settings_Disabled = HEIGHT_1,
 
@@ -72,6 +73,7 @@ local FONT_OBJECT_HEIGHT = {
     DUIFont_AlertHeader = {8, 9, 10, 12, 12},
 
     DUIFont_Book_10 = {10, 10, 10, 10, 12},
+    DUIFont_ChatFont = {10, 10, 10, 10, 12},
 };
 
 FONT_OBJECT_HEIGHT.DUIFont_Book_H1 = FONT_OBJECT_HEIGHT.DUIFont_Quest_Title_18;

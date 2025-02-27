@@ -1,6 +1,6 @@
 ﻿
 	----------------------------------------------------------------------
-	-- 	Leatrix Maps 11.0.24 (18th December 2024)
+	-- 	Leatrix Maps 11.1.00 (26th February 2025)
 	----------------------------------------------------------------------
 
 	-- 10:Func, 20:Comm, 30:Evnt, 40:Panl
@@ -12,7 +12,7 @@
 	local LeaMapsLC, LeaMapsCB, LeaConfigList = {}, {}, {}
 
 	-- Version
-	LeaMapsLC["AddonVer"] = "11.0.24"
+	LeaMapsLC["AddonVer"] = "11.1.00"
 
 	-- Get locale table
 	local void, Leatrix_Maps = ...
@@ -28,7 +28,7 @@
 			end)
 			return
 		end
-		if gametocversion and gametocversion >= 110000 then -- 11.0.0
+		if gametocversion and gametocversion >= 110100 then -- 11.1.0
 			LeaMapsLC.NewPatch = true
 		end
 	end
@@ -104,6 +104,10 @@
 			for i, v in pairs({WorldMapFrame:GetChildren()}) do
 				if v.ResetButton then
 					v.ResetButton:SetParent(hiddenFrame)
+				end
+				if v.FilterCounter then
+					v.FilterCounter:HookScript("OnShow", function() v.FilterCounter:Hide() end)
+					v.FilterCounterBanner:HookScript("OnShow", function() v.FilterCounterBanner:Hide() end)
 				end
 			end
 		end
@@ -2153,6 +2157,7 @@
 			LeaMapsLC:LoadVarChk("NoMapFade", "On")						-- Disable map fade
 			LeaMapsLC:LoadVarChk("NoMapEmote", "On")					-- Disable map emote
 			LeaMapsLC:LoadVarChk("NoFilterResetBtn", "On")				-- Hide filter reset button
+
 			LeaMapsLC:LoadVarAnc("MapPosA", "TOPLEFT")					-- Windowed map anchor
 			LeaMapsLC:LoadVarAnc("MapPosR", "TOPLEFT")					-- Windowed map relative
 			LeaMapsLC:LoadVarNum("MapPosX", 16, -5000, 5000)			-- Windowed map X
@@ -2214,7 +2219,7 @@
 
 			if LeaMapsLC.NewPatch then
 			else
-				-- LockDF("NoFilterResetBtn", "This is for The War Within.")
+				-- LockDF("NoMapTabs", "This is for game patch 11.1.0.")
 			end
 
 		elseif event == "PLAYER_LOGIN" then
@@ -2233,6 +2238,7 @@
 			LeaMapsDB["NoMapFade"] = LeaMapsLC["NoMapFade"]
 			LeaMapsDB["NoMapEmote"] = LeaMapsLC["NoMapEmote"]
 			LeaMapsDB["NoFilterResetBtn"] = LeaMapsLC["NoFilterResetBtn"]
+
 			LeaMapsDB["MapPosA"] = LeaMapsLC["MapPosA"]
 			LeaMapsDB["MapPosR"] = LeaMapsLC["MapPosR"]
 			LeaMapsDB["MapPosX"] = LeaMapsLC["MapPosX"]

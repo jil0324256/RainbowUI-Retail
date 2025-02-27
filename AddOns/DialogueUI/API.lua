@@ -180,7 +180,9 @@ do  -- Pixel
     API.DisableSharpening = DisableSharpening;
 
     local function GetBestViewportSize()
-        local viewportWidth, viewportHeight = WorldFrame:GetSize(); --height unaffected by screen resolution
+        --WorldFrame's size is unaffected by screen resolution
+        --Issue caused by occasionally bugged resolution since 11.0? https://github.com/Peterodox/YUI-Dialogue/issues/104
+        local viewportWidth, viewportHeight = WorldFrame:GetSize();
         viewportWidth = math.min(viewportWidth, viewportHeight * 16/9);
         return viewportWidth, viewportHeight
     end
@@ -242,10 +244,11 @@ do  -- Pixel
     API.GetScaledCursorPosition = GetScaledCursorPosition;
 end
 
-do  -- Object Pool
+do  -- Object Pool (Pool needs to Release all objects before reusing) / DynamicPoolMixin (can reuse any inactive object without Releasing All objects)
     local ObjectPoolMixin = {};
     local ipairs = ipairs;
     local tinsert = table.insert;
+    local tremove = table.remove;
 
     function ObjectPoolMixin:Release()
         for i, object in ipairs(self.objects) do
@@ -341,6 +344,90 @@ do  -- Object Pool
         return pool
     end
     API.CreateObjectPool = CreateObjectPool;
+
+
+
+
+    local DynamicPoolMixin = {};
+
+    function DynamicPoolMixin:ReleaseAll()
+        local removeFunc = self.Remove or RemoveObject;
+        for obj, active in pairs(self.activeObjects) do
+            if active then
+                removeFunc(obj);
+            end
+        end
+        self.activeObjects = {};
+        self.bins = {};
+        for i, obj in ipairs(self.allObjects) do
+            self.bins[i] = obj;
+        end
+    end
+
+    function DynamicPoolMixin:RecycleObject(obj)
+        if self.activeObjects[obj] then
+            self.activeObjects[obj] = nil;
+            if self.Remove then
+                self.Remove(obj);
+            else
+                RemoveObject(obj);
+            end
+        end
+        tinsert(self.bins, obj);
+    end
+
+    function DynamicPoolMixin:Acquire()
+        local obj = tremove(self.bins);
+        if not obj then
+            obj = self.Create();
+            obj.Release = self.ReleaseObject;
+            tinsert(self.allObjects, obj);
+        end
+        if self.OnAcquired then
+            self.OnAcquired(obj);
+        end
+        self.activeObjects[obj] = true;
+        return obj
+    end
+
+    function DynamicPoolMixin:CallActive(method, arg1, arg2, arg3, arg4)
+        for obj, active in pairs(self.activeObjects) do
+            obj[method](obj, arg1, arg2, arg3, arg4);
+        end
+    end
+
+    function DynamicPoolMixin:EnumerateActive()
+        return pairs(self.activeObjects);
+    end
+
+    function DynamicPoolMixin:DebugGetCount()
+        local numTotal = #self.allObjects;
+        local numInactive = #self.bins;
+        local numActive = 0;
+        for obj, active in pairs(self.activeObjects) do
+            numActive = numActive + 1;
+        end
+        print(numTotal, numActive, numInactive);
+    end
+
+    local function CreateDynamicObjectPool(createFunc, removeFunc, onAcquiredFunc)
+        local pool = API.CreateFromMixins(DynamicPoolMixin);
+
+        pool.allObjects = {};
+        pool.bins = {};
+        pool.activeObjects = {};
+
+        pool.Create = createFunc;
+        pool.Remove = removeFunc or RemoveObject;
+        pool.OnAcquired = onAcquiredFunc;
+
+        pool.ReleaseObject = function(obj)
+            pool:RecycleObject(obj);
+        end
+
+        return pool
+    end
+    API.CreateDynamicObjectPool = CreateDynamicObjectPool;
 end
 
 do  -- String
@@ -708,6 +795,27 @@ do  -- NPC Interaction
     end
     API.GetCurrentNPCInfo = GetCurrentNPCInfo;
 
+    local SkippedNPC = {
+        [94398] = true,     --Fleet Command Table
+        [94399] = true,     --Fleet Command Table
+        [138704] = true,    --Mission Command Table
+        [138706] = true,    --Mission Command Table
+        [147244] = true,    --Mission Command Table
+        [215758] = true,    --Mission Command Table
+    };
+    local function IsInteractingWithGameObject()
+        local guid = UnitGUID("npc");
+        if guid then
+            local unitType, id = match(guid, "^(%a+)%-0%-%d*%-%d*%-%d*%-(%d*)");
+            if unitType == "GameObject" or unitType == "Vehicle" then
+                return true
+            elseif unitType == "Creature" and id then
+                id = tonumber(id) or 0;
+                return SkippedNPC[id]
+            end
+        end
+    end
+    API.IsInteractingWithGameObject = IsInteractingWithGameObject;
 
     local SCOUTING_MAP = ADVENTURE_MAP_TITLE or "Scouting Map";
     local UnitClass = UnitClass;
@@ -760,6 +868,14 @@ do  -- Easing
         t = t / d
         return (e - b) * pow(t, 2) + b
     end
+
+    function EasingFunctions.none(t, b, e, d)
+        return e
+    end
+
+    function EasingFunctions.noChange(t, b, e, d)
+        return b
+    end
 end
 
 do  -- Quest
@@ -790,6 +906,7 @@ do  -- Quest
     local GetNumQuestLeaderBoards = GetNumQuestLeaderBoards;
     local GetQuestLogLeaderBoard = GetQuestLogLeaderBoard;
     local GetQuestClassification = C_QuestInfoSystem.GetQuestClassification or AlwaysNil;
+    local IsAccountQuest = C_QuestLog.IsAccountQuest or AlwaysFalse;
 
     API.IsQuestFlaggedCompletedOnAccount = IsQuestFlaggedCompletedOnAccount;
 
@@ -889,6 +1006,7 @@ do  -- Quest
     API.QuestHasQuestSessionBonus = QuestHasQuestSessionBonus;
     API.GetQuestItemInfoLootType = GetQuestItemInfoLootType;
     API.GetTitleForQuestID = GetTitleForQuestID;
+    API.IsAccountQuest = IsAccountQuest;
 
     if GetAvailableQuestInfo then
         API.GetAvailableQuestInfo = GetAvailableQuestInfo;
@@ -958,6 +1076,18 @@ do  -- Quest
 
         if not questInfo.isMeta then
             questInfo.isMeta = class == Enum_QuestClassification.Meta;
+        end
+
+        if questInfo.frequency == 2 then
+            questInfo.isWeekly = true;
+        end
+
+        if questInfo.frequency == 1 then
+            questInfo.isDaily = true;
+        end
+
+        if questInfo.isAccountQuest == nil then
+            questInfo.isAccountQuest = IsAccountQuest(questInfo.questID);
         end
 
         return questInfo
@@ -1094,10 +1224,12 @@ do  -- Quest
         ["QuestBG-Storm"] = "TWW-Storm.png",
         ["QuestBG-Web"] = "TWW-Web.png",
         ["QuestBG-1027"] = "TWW-Azeroth.png",
+        ["QuestBG-Rocket"] = "TWW-Rocket.png",
     };
 
     local function GetQuestBackgroundDecor(questID)
         local theme = GetQuestDetailsTheme(questID);
+        --print(theme.background)
         --theme = {background = "QuestBG-Web"};    --debug
         if theme and theme.background and BackgroundDecors[theme.background] then
             return DECOR_PATH..BackgroundDecors[theme.background]
@@ -1108,7 +1240,6 @@ do  -- Quest
 
     local MAX_QUESTS;
     local GetNumQuestLogEntries = C_QuestLog.GetNumQuestLogEntries;
-    local IsAccountQuest = C_QuestLog.IsAccountQuest;
     local GetQuestIDForLogIndex = C_QuestLog.GetQuestIDForLogIndex;
     local GetQuestInfo = C_QuestLog.GetInfo;
 
@@ -3095,7 +3226,6 @@ do  -- Dev Tool
 
     if not DEV_MODE then return end;
 
-    local IsAccountQuest = C_QuestLog.IsAccountQuest;
     local GetQuestIDForLogIndex = C_QuestLog.GetQuestIDForLogIndex;
     local GetQuestInfo = C_QuestLog.GetInfo;
 
@@ -3115,7 +3245,7 @@ do  -- Dev Tool
             if questID ~= 0 then
                 print(i, questID)
             end
-            if questID ~= 0 and not IsAccountQuest(questID) then
+            if questID ~= 0 and not API.IsAccountQuest(questID) then
                 local info = GetQuestInfo(i);
                 if info and (not (info.isHidden or info.isHeader)) and info.frequency == 1 then
                     numAllQuests = numAllQuests - 1;
@@ -3143,7 +3273,7 @@ do  -- Dev Tool
         for _, key in ipairs(QuestInfoFields) do
             TooltipAddInfo(tooltip, info, key)
         end
-        tooltip:AddDoubleLine("Account", tostring(IsAccountQuest(questID)));
+        tooltip:AddDoubleLine("Account", tostring(API.IsAccountQuest(questID)));
         tooltip:AddDoubleLine("isCalling", tostring(C_QuestLog.IsQuestCalling(questID)));
         tooltip:AddDoubleLine("QuestType", C_QuestLog.GetQuestType(questID));
         tooltip:AddDoubleLine("isRepeatable", tostring(C_QuestLog.IsRepeatableQuest(questID)));

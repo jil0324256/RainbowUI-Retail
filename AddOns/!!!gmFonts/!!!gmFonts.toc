@@ -1,4 +1,4 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110100
 ## Version: 1010-2023050901 Fix
 ## Title: gmFonts
 ## Notes: A small addon for changing default UI fonts and/or adding in SharedMedia
@@ -10,7 +10,7 @@
 
 ## Title-zhTW: |cffffffee[系統]|r 遊戲字體
 ## Notes-zhTW: gmFonts |n|n更改整體遊戲預設的字體和大小。|n|n|cffffd200使用方法: |r從Esc>選項>插件>字體，進行設定。
-## X-Category-zhTW: 介面
+## Category-zhTW: 系統
 
 libs\LibStub.lua
 libs\CallbackHandler-1.0.lua

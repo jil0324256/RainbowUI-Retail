@@ -50,7 +50,7 @@ L["Different Item Types Alert"] = "The item types are different!";
 L["Click To Read"] = "Left Click to Read";
 L["Item Level"] = STAT_AVERAGE_ITEM_LEVEL or "Item Level";
 L["Gossip Quest Option Prepend"] = "(Quest)";   --Some gossip options start with blue (Quest), we prioritize them when sorting. See GOSSIP_QUEST_OPTION_PREPEND
-L["TTS Button Tooltip"] = "Left Click: Play/Stop Reading.\nRight Click: Toggle Auto Play";
+L["TTS Button Tooltip"] = "Left Click: Play/Stop Reading.\nRight Click: Toggle Auto Play.";
 L["Item Is An Upgrade"] = "This item is an upgrade for you";
 L["Identical Stats"] = "The two items have the same stats";   --Two items provide the same stats
 L["Quest Completed On Account"] = (ACCOUNT_COMPLETED_QUEST_NOTICE or "Your Warband previously completed this quest.");
@@ -129,6 +129,9 @@ L["Orientation Left"] = HUD_EDIT_MODE_SETTING_BAGS_DIRECTION_LEFT or "Left";
 L["Orientation Right"] = HUD_EDIT_MODE_SETTING_BAGS_DIRECTION_RIGHT or "Right";
 L["Hide UI"] = "Hide UI";
 L["Hide UI Desc"] = "Fade out the game UI when you interact with an NPC.";
+L["Show Chat Window"] = "NPC Chat Window";
+L["Show Chat Window Left Desc"] = "Show an NPC chat window on the bottom left of your screen.";
+L["Show Chat Window Right Desc"] = "Show an NPC chat window on the bottom right of your screen.";
 L["Hide Unit Names"] = "Hide Unit Names";
 L["Hide Unit Names Desc"] = "Hide players and other NPC names when you interact with an NPC.";
 L["Hide Sparkles"] = "Hide Outline Sparkles";
@@ -175,6 +178,8 @@ L["Input Device PlayStation"] = "PlayStation";
 L["Input Device PlayStation Tooltip"] = "Confirm Button: [KEY:PS:PAD1]\nCancel Button: [KEY:PS:PAD2]";
 L["Input Device Switch"] = "Switch";
 L["Input Device Switch Tooltip"] = "Confirm Button: [KEY:SWITCH:PAD1]\nCancel Button: [KEY:SWITCH:PAD2]";
+L["Use Custom Bindings"] = "Use Custom Bindings";
+L["Use Custom Bindings Desc"] = "Enable this option to use your own bindings.";
 L["Primary Control Key"] = "Confirm Button";
 L["Primary Control Key Desc"] = "Press this key to select the first available option like Accept Quest."
 L["Press Button To Scroll Down"] = "Press Button To Scroll Down";
@@ -228,6 +233,8 @@ L["Auto Select Gossip"] = "Auto Select Option";
 L["Auto Select Gossip Desc"] = "Automatically select the best dialogue option when interacting with certain NPC.";
 L["Force Gossip"] = "Force Gossip";
 L["Force Gossip Desc"] = "By default, the game sometimes automatically selects the first option without showing the dialog. By enabling Force Gossip, the dialogue will become visible.";
+L["Skip GameObject"] = "Skip GameObject";   --Sub-option of Force Gossip
+L["Skip GameObject Desc"] = "Dot not reveal the hidden dialogue of GameObject like Crafting Tables.";
 L["Show Hint"] = "Show Hint";
 L["Show Hint Desc"] = "Add a button that selects the correct answer if possible.\n\nCurrently only supports the quiz during Timewalking.";
 L["Nameplate Dialog"] = "Display Dialogue On Nameplate";
@@ -235,6 +242,9 @@ L["Nameplate Dialog Desc"] = "Display the dialogue on the NPC nameplate if they 
 L["Compatibility"] = "Compatibility";
 L["Disable DUI In Instance"] = "Use WoW's Default UI In Instance";
 L["Disable DUI In Instance Desc"] = "Disable Dialogue UI and use WoW's default one when you are in dungeon or raid.\n\nEnable this option if you cannot interact with an NPC that allows you to start or skip boss encounters.";
+
+L["Disable UI Motions"] = "Reduce UI Movements";
+L["Disable UI Motions Desc"] = "Reduce UI movements such as Unfolding UI or Nudging Button Text.";
 
 L["TTS"] = TEXT_TO_SPEECH or "Text To Speech";
 L["TTS Desc"] = "Read dialogue text out loud by clicking the button on the top left of the UI.";
@@ -290,11 +300,39 @@ L["BookUI TTS Voice Desc"] = "Use this voice for readable objects:";
 L["BookUI TTS Click To Read"] = "Click Paragraph To Read";
 L["BookUI TTS Click To Read Desc"] = "Click on a paragraph to read it.\n\nClick on a paragraph currently being read to stop reading.";
 
+--Keybinding Action
+L["Bound To"] = "Bound to: ";
+L["Hotkey Colon"] = "Hotkey: ";
+L["Not Bound"] = NOT_BOUND or "Not Bound";
+L["Action Confirm"] = "Confirm";
+L["Action Settings"] = "Toggle Settings";
+L["Action Option1"] = "Option 1";
+L["Action Option2"] = "Option 2";
+L["Action Option3"] = "Option 3";
+L["Action Option4"] = "Option 4";
+L["Action Option5"] = "Option 5";
+L["Action Option6"] = "Option 6";
+L["Action Option7"] = "Option 7";
+L["Action Option8"] = "Option 8";
+L["Action Option9"] = "Option 9";
+
 --Tutorial
 L["Tutorial Settings Hotkey"] = "Press [KEY:PC:F1] to toggle Settings";     --Shown when interacting with an NPC with this addon for the first time
 L["Tutorial Settings Hotkey Console"] = "Press [KEY:PC:F1] or [KEY:CONSOLE:MENU] to toggle Settings";   --Use this if gamepad enabled
-L["Instuction Open Settings"] = "To open Settings, press [KEY:PC:F1] while you are interacting with an NPC.";    --Used in Game Menu - AddOns
-L["Instuction Open Settings Console"] = "To open Settings, press [KEY:PC:F1] or [KEY:CONSOLE:MENU] while you are interacting with an NPC.";
+L["Instruction Open Settings"] = "You can open settings by pressing [KEY:PC:F1] when the dialogue window is active.";    --Used in Game Menu - AddOns
+L["Instruction Open Settings Console"] = "You can open settings by pressing [KEY:PC:F1] or [KEY:CONSOLE:MENU] when the dialogue window is active.";
+L["Instruction Open Settings Keybind Format"] = "You can open settings by pressing [%s] when the dialogue window is active.";
+L["Instruction Open Settings No Keybind"] = "You did not set a keybind to open settings.";
+L["HelpTip Warband Completed Quest"] = "This icon indicates the quest has been completed by your Warband.";
+L["Got It"] = HELP_TIP_BUTTON_GOT_IT or "Got It";
+L["Open Settings"] = "Open Settings";
+
+--AddOn Compatibility for Language Translator
+L["Translator"] = "Translator";
+L["Translator Source"] = "Source: ";
+L["Translator No Quest Data Format"] = "No entry found for [Quest: %s]";
+L["Translator Click To Hide Translation"] = "Click to hide the translation";
+L["Translator Click To Show Translation"] = "Click to show the translation";
 
 --DO NOT TRANSLATE
 L["Abbrev Breakpoint 1000"] = FIRST_NUMBER_CAP_NO_SPACE or "K";     --1,000 = 1K

@@ -1,4 +1,4 @@
-## Interface: 11503, 30403, 40400, 110005, 110007
+## Interface: 11503, 30403, 40400, 110007, 110100
 ## Title: Masque: |cff267EFFTrinity|r
 ## Author: Maul
 ## Version: Centauri-5
@@ -11,7 +11,7 @@
 
 ## Title-zhTW: |cff00CCFF[快捷列]|r 按鈕外觀主題-三體
 ## Notes-zhTW: Masque: |cff267EFFTrinity|r |n|n三體的按鈕外觀佈景主題。
-## X-Category-zhTW: 介面
+## Category-zhTW: 介面
 ## IconTexture: 982414
 ## DefaultState: disabled
 

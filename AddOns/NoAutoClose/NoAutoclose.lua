@@ -8,6 +8,7 @@ ns.ignore = {
     CommunitiesFrame = true,
     MacroFrame = true,
     PerksProgramFrame = true, -- trading post frame, better to allow it to hide the UI
+    TokenFrame = true, -- breaks baganator's currency transfer, ignoring it doesn't impact things otherwise
     WarboardQuestChoiceFrame = true,
 };
 local uiSpecialFrameBlacklist = {
@@ -144,8 +145,9 @@ function ns:ReworkSettingsOpenAndClose()
         end
     end
     -- this closes the game menu when opening the settings ui, which makes it less buggy when pressing escape to close the settings UI
-    if GameMenuButtonSettings then
-        GameMenuButtonSettings:HookScript('OnClick', function()
+    local settingsButton = GameMenuButtonSettings or GameMenuButtonOptions;
+    if settingsButton then
+        settingsButton:HookScript('OnClick', function()
             if GameMenuFrame and GameMenuFrame:IsShown() then
                 HideUIPanel(GameMenuFrame);
             end

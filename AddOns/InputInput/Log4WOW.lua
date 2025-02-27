@@ -4,7 +4,7 @@ local Level = {
     ERROR = '|cFFF56C6C',
     WARN = '|cFFE6A23C',
     DEBUG = '|cFF909399',
-    INFO = '|cFFFFFF00'
+    INFO = '|cFFFFFFFF'
 }
 local prnSuffix = "|cff409EFFII|r : "
 
@@ -25,7 +25,7 @@ local function Uprint(level, ...)
         else
             print(prnSuffix, color, ..., '|r')
         end
-    elseif E == 'PRO' then
+    elseif E == 'PRO' or E == 'BETE' then
         if level == 'ERROR' or level == 'WARN' or level == 'INFO' then
             print(prnSuffix, color, ..., '|r')
         end

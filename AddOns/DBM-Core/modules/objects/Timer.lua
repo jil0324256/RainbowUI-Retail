@@ -163,6 +163,10 @@ local waKeyOverrides = {
 	["intermissioncount"] = "stages",
 }
 
+local function isNegativeZero(x)
+	return x == 0 and 1/x < 0  -- Only true for -0
+end
+
 -- Parse variance from timer string (v30.5-40" or "dv30.5-40"), into minimum and maximum timer, and calculated variance duration
 ---@param timer string
 ---@return number maxTimer, number minTimer, number varianceDuration
@@ -201,22 +205,32 @@ function timerPrototype:Start(timer, ...)
 		if DBM.Options.DontShowBossTimers and not self.mod.isTrashMod then return end
 		if DBM.Options.DontShowTrashTimers and self.mod.isTrashMod then return end
 	end
-	local hasVariance = type(timer) == "number" and false or not timer and self.hasVariance -- to separate from metadata, to account for metavariant timers with a fixed timer start, like timer:Start(10)
-	local timerStringWithVariance, minTimer
+	local isDelayed = type(timer) == "number" and (isNegativeZero(timer) or timer < 0)
+	local hasVariance = type(timer) == "number" and timer > 0 and false or not timer and self.hasVariance -- account for metavariant timers that were fired with a fixed timer start, like timer:Start(10). Does not account for timer:Start(-delay), which is parsed below after variance started timers
+	local timerStringWithVariance, maxTimer, minTimer
 	if type(timer) == "string" and timer:match("^v%d+%.?%d*-%d+%.?%d*$") then -- catch "timer variance" pattern, expressed like v10.5-20.5
 		hasVariance = true
 		timerStringWithVariance = timer -- cache timer string
-		timer, minTimer = parseVarianceFromTimer(timer) -- use highest possible value as the actual End timer
-		if DBM.Options.DebugMode then
-			self.keep = true -- keep variance timers for debug purposes
+		maxTimer, minTimer = parseVarianceFromTimer(timer) -- use highest possible value as the actual End timer
+		timer = DBT.Options.VarianceEnabled and maxTimer or minTimer
+	end
+	if isDelayed then -- catch metavariant timers with delay, expressed like timer:Start(-delay)
+		if self.hasVariance then
+			hasVariance = self.hasVariance
+			maxTimer, minTimer = parseVarianceFromTimer(self.timerStringWithVariance) -- use highest possible value as the actual End timer
+			timerStringWithVariance = ("v%s-%s"):format(minTimer + timer, maxTimer + timer) -- rebuild timer string with delay applied
+			timer = (DBT.Options.VarianceEnabled and maxTimer or minTimer) + timer
 		end
+	end
+	if DBM.Options.DebugMode and self.mod.id ~= "TestMod" then
+		self.keep = hasVariance -- keep variance timers for debug purposes
 	end
 	if timer and type(timer) ~= "number" then
 		return self:Start(nil, timer, ...) -- first argument is optional!
 	end
 	if not self.option or self.mod.Options[self.option] then
 		local isCountTimer = false
-		if self.type and (self.type == "cdcount" or self.type == "nextcount" or self.type == "stagecount" or self.type == "stagecontextcount" or self.type == "stagecountcycle" or self.type == "intermissioncount") then
+		if self.type and (self.type == "cdcount" or self.type == "nextcount" or self.type == "stagecount" or self.type == "stagecontextcount" or self.type == "stagecountcycle" or self.type == "intermissioncount" or self.type == "varcount") then
 			isCountTimer = true
 		end
 		local guid, timerCount
@@ -260,6 +274,10 @@ function timerPrototype:Start(timer, ...)
 								elseif bar.timer > 0.2 then
 									DBM:Debug("Timer " .. ttext .. phaseText .. " refreshed before expired. Remaining time is : " .. remaining, 2, true)
 								end
+							end
+							-- Trace early refreshes for tests
+							if bar.timer > correctWithVarianceDuration(0.1, bar) then
+								test:Trace(self.mod, "EarlyTimerRefresh", self, bar.timer, bar.totalTime, bar.varianceDuration)
 							end
 						end
 					end
@@ -308,6 +326,8 @@ function timerPrototype:Start(timer, ...)
 			else--AI timer passed with 5 or less is indicating phase change, with timer as phase number
 				if not private.isRetail then
 					timer = math.floor(timer)--Floor inprecise timers in classic because combat is mostly caused by PLAYER_REGEN in dungeons
+				else
+					timer = math.ceil(timer)--Ceil timer in retail to fix combat startt timers being 0.9999 instead of 1 (due to change in how delay works)
 				end
 				if self["phase" .. timer .. "CastTimer"] and type(self["phase" .. timer .. "CastTimer"]) == "number" then
 					--Check if timer is shorter than previous learned first timer by scanning remaining time on existing bar
@@ -353,6 +373,9 @@ function timerPrototype:Start(timer, ...)
 								DBM:Debug("Timer " .. ttext .. phaseText .. " refreshed before expired. Remaining time is : " .. remaining, 2, true)
 							end
 						end
+					end
+					if bar.timer > correctWithVarianceDuration(0.1, bar) then
+						test:Trace(self.mod, "EarlyTimerRefresh", self, bar.timer, bar.totalTime, bar.varianceDuration)
 					end
 				end
 			end
@@ -553,13 +576,13 @@ function timerPrototype:DelayedStart(delay, ...)
 	DBMScheduler:Unschedule(self.Start, self.mod, self, ...)
 	local id = DBMScheduler:Schedule(delay or 0.5, self.Start, self.mod, self, ...)
 	test:Trace(self.mod, "SchedulerHideFromTraceIfUnscheduled", id)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "DelayedStart", testFixupScheduleMethodName(...))
+	test:Trace(self.mod, "SetScheduleMethodName", id, self, "DelayedStart", testFixupScheduleMethodName(self, ...))
 end
 timerPrototype.DelayedShow = timerPrototype.DelayedStart
 
 function timerPrototype:Schedule(t, ...)
 	local id = DBMScheduler:Schedule(t, self.Start, self.mod, self, ...)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", testFixupScheduleMethodName(...))
+	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", testFixupScheduleMethodName(self, ...))
 end
 
 function timerPrototype:Unschedule(...)

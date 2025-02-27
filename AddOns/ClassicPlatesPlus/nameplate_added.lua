@@ -82,8 +82,8 @@ function func:Nameplate_Added(unit, visuals)
                 unitFrame.raidTarget.icon:ClearAllPoints();
 
                 -- Auras counters
-                unitFrame.buffsCounter:SetScale(CFG.AurasScale);
-                unitFrame.debuffsCounter:SetScale(CFG.AurasScale);
+                unitFrame.buffsCounter:SetScale(CFG.AurasScale - 0.2);
+                unitFrame.debuffsCounter:SetScale(CFG.AurasScale - 0.2);
 
                 -- powerbar
                 unitFrame.powerbar:ClearAllPoints();
@@ -196,7 +196,9 @@ function func:Nameplate_Added(unit, visuals)
                 func:Update_Name(unit);
                 func:Update_Guild(unit);
                 func:Update_Classification(unit);
-                func:Update_Portrait(unit);
+                if CFG.Portrait then
+                    func:Update_Portrait(unit);
+                end
                 func:Update_FellowshipBadge(unit);
                 func:Update_PVP_Flag(unit);
                 func:Update_Level(unit);
@@ -249,10 +251,12 @@ function func:Nameplate_Added(unit, visuals)
                     or CFG.NamesOnlyExcludeParty and func:UnitInYourParty(unit)
                     or CFG.NamesOnlyExcludeRaid and UnitPlayerOrPetInRaid(unit)
 
+                local CastBar_offset = CFG.CastbarIconShow and 0 or not CFG.CastbarIconShow and -2;
+
                 if nameOnly and not exclude then
                     unitFrame.raidTarget.icon:SetPoint("right", unitFrame.name, "left", unitFrame.fellowshipBadge:IsShown() and -20 or -6, 0);
                     unitFrame.raidTarget.icon:SetScale(0.7);
-                    unitFrame.castbar:SetPoint("top", unitFrame.guild:IsShown() and unitFrame.guild or unitFrame.name, "bottom", 0, -2 - CFG.CastbarPositionY);
+                    unitFrame.castbar:SetPoint("top", unitFrame.guild:IsShown() and unitFrame.guild or unitFrame.name, "bottom", 0, -2 + CastBar_offset - CFG.CastbarPositionY);
                 else
                     unitFrame.raidTarget.icon:SetScale(1);
 
@@ -260,17 +264,17 @@ function func:Nameplate_Added(unit, visuals)
                         unitFrame.raidTarget.icon:SetPoint("right", unitFrame.portrait.texture, "left", -6, 0);
 
                         if CFG.ShowLevel then
-                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", 0, (powerbarToggle and 4 or -3) - CFG.CastbarPositionY);
+                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", 0, (powerbarToggle and 4 or -3) + CastBar_offset - CFG.CastbarPositionY);
                         else
-                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", powerbarToggle and -2 or -9, (powerbarToggle and 4 or -3) - CFG.CastbarPositionY);
+                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", powerbarToggle and -2 or -9, (powerbarToggle and 4 or -3) + CastBar_offset - CFG.CastbarPositionY);
                         end
                     else
                         unitFrame.raidTarget.icon:SetPoint("right", unitFrame.healthbar, "left", -6, 0);
 
                         if CFG.ShowLevel then
-                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", powerbarToggle and 2.67 or 9, (powerbarToggle and 4 or 0) - CFG.CastbarPositionY);
+                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", powerbarToggle and 2.67 or 9, (powerbarToggle and 4 or 0) + CastBar_offset - CFG.CastbarPositionY);
                         else
-                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", 0, (powerbarToggle and 4 or 0) - CFG.CastbarPositionY);
+                            unitFrame.castbar:SetPoint("top", powerbarToggle and unitFrame.powerbar or unitFrame.healthbar.border, "bottom", 0, (powerbarToggle and 4 or 0) + CastBar_offset - CFG.CastbarPositionY);
                         end
                     end
                 end

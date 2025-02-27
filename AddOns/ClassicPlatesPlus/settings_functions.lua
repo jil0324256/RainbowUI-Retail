@@ -6,6 +6,7 @@ local func = core.func;
 local data = core.data;
 
 local addonName = "|cfff563ff[經典血條 Plus]: ";
+
 -- Colors
 local yellow = "|cff" .. "ffd100";
 local white  = "|cff" .. "ffffff";
@@ -30,6 +31,8 @@ local function updateEverything()
     end
 
     func:ResizeNameplates();
+    func:PersonalNameplateAdd();
+    func:Update_Auras("player");
 end
 
 local function updateCVar()
@@ -80,6 +83,8 @@ local function updateNameplateVisuals()
             end
         end
     end
+
+    func:PersonalNameplateAdd();
 end
 
 local function updateAuras()
@@ -94,53 +99,6 @@ local function updateAuras()
     end
 
     func:Update_Auras("player");
-end
-
-local function updateAurasVisuals()
-    local nameplates = C_NamePlate.GetNamePlates();
-    local CFG = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile];
-
-    local function work(unitFrame, filter)
-        local scaleOffset = unitFrame.unit == "player" and 0.15 or 0.15;
-        local scale = (CFG.AurasScale - scaleOffset) > 0 and (CFG.AurasScale - scaleOffset) or 0.1
-
-        if unitFrame.auras and unitFrame.auras[filter] then
-            for i = 1, 40 do
-                if unitFrame.auras[filter][i] then
-                    unitFrame.auras[filter][i]:SetScale(scale);
-                    unitFrame.auras[filter][i].cooldown:SetReverse(CFG.AurasReverseAnimation);
-                    unitFrame.auras[filter][i].countdown:SetShown(CFG.AurasCountdown);
-                    unitFrame.auras[filter][i].countdown:ClearAllPoints();
-                    if CFG.AurasCountdownPosition == 1 then
-                        unitFrame.auras[filter][i].countdown:SetPoint("right", unitFrame.auras[filter][i].second, "topRight", 5, -2.5);
-                        unitFrame.auras[filter][i].countdown:SetJustifyH("right");
-                    elseif CFG.AurasCountdownPosition == 2 then
-                        unitFrame.auras[filter][i].countdown:SetPoint("center", unitFrame.auras[filter][i].second, "center");
-                        unitFrame.auras[filter][i].countdown:SetJustifyH("center");
-                    end
-                end
-            end
-        end
-
-        unitFrame.buffsCounter:SetScale(CFG.AurasScale);
-        unitFrame.debuffsCounter:SetScale(CFG.AurasScale);
-    end
-
-    if nameplates then
-        for k,v in pairs(nameplates) do
-            if k and v.unitFrame.unit then
-                local unitFrame = v.unitFrame;
-
-                work(unitFrame, "helpful");
-                work(unitFrame, "harmful");
-            end
-        end
-    end
-
-    if data.nameplate then
-        work(data.nameplate, "helpful");
-        work(data.nameplate, "harmful");
-    end
 end
 
 local function updateNameplateScale()
@@ -196,6 +154,27 @@ local function updateNameplateDistance()
                     data.tickers.MaxNameplateDistance = nil;
                 end
             end)
+        end
+    end
+end
+
+-- Caching auras names, icons and IDs
+function func:CacheAurasInfo(list)
+    data.settings[list] = {};
+
+    if not CFG_ClassicPlatesPlus[list] then
+        if list == "AurasImportantList" or list == "AurasBlacklist" then
+            CFG_ClassicPlatesPlus[list] = {};
+        end
+    end
+
+    for spellID in pairs(CFG_ClassicPlatesPlus[list]) do
+        if spellID then
+            local spellInfo = C_Spell.GetSpellInfo(spellID);
+
+            if spellInfo then
+                data.settings[list][spellInfo.name] = { name = spellInfo.name, icon = spellInfo.iconID, id = spellID };
+            end
         end
     end
 end
@@ -264,13 +243,9 @@ local functionsTable = {
     AurasFilterEnemy = function() updateAuras(); end,
     AurasShowOnlyImportant = function() updateAuras(); end,
     AurasHidePassive = function() updateAuras(); end,
-    AurasOnTarget = function()
-        func:HideAllAuras();
-        updateAuras();
-    end,
-    AurasCountdown = function() updateAurasVisuals(); end,
-    AurasReverseAnimation = function() updateAurasVisuals(); end,
-    MarkStealableAuras = function() updateAuras(); end,
+    AurasOnTarget = function() updateAuras(); end,
+    AurasCountdown = function() updateAuras(); end,
+    AurasReverseAnimation = function() updateAuras(); end,
 
     BuffsFriendly = function() updateAuras(); end,
     DebuffsFriendly = function() updateAuras(); end,
@@ -282,7 +257,10 @@ local functionsTable = {
     AurasMaxDebuffsFriendly = function() updateAuras(); end,
     AurasMaxBuffsEnemy = function() updateAuras(); end,
     AurasMaxDebuffsEnemy = function() updateAuras(); end,
-    AurasScale = function() updateAurasVisuals(); end,
+    AurasScale = function() updateAuras(); end,
+    AurasImportantScale = function() updateAuras(); end,
+    AurasGroupFilter = function() updateAuras(); end,
+    AurasGroupFilterExcludeTarget = function() updateAuras(); end,
     AurasOverFlowCounter = function()
         local nameplates = C_NamePlate.GetNamePlates();
         if nameplates then
@@ -296,17 +274,27 @@ local functionsTable = {
     end,
     BuffsFilterPersonal = function() func:Update_Auras("player"); end,
     DebuffsFilterPersonal = function() func:Update_Auras("player"); end,
-
     BuffsPersonal = function() func:Update_Auras("player"); end,
     DebuffsPersonal = function() func:Update_Auras("player"); end,
-
     AurasPersonalMaxBuffs = function() func:Update_Auras("player"); end,
     AurasPersonalMaxDebuffs = function() func:Update_Auras("player"); end,
     AurasImportantList = function() updateAuras(); end,
     AurasBlacklist = function() updateAuras(); end,
+    AurasMarkYours = function() updateAuras(); end,
+    AurasMarkColor = function() updateAuras(); end,
+    AurasMarkLocation = function() updateAuras(); end,
+    AurasImportantHighlight = function() updateAuras(); end,
+
+    AurasHelpfulBorderColor = function() updateAuras(); end,
+    AurasHarmfulBorderColor = function() updateAuras(); end,
+    AurasOwnHarmfulBorderColor = function() updateAuras(); end,
+    AurasStealableBorderColor = function() updateAuras(); end,
+
+    ThreatWarning = function() updateNameplateVisuals(); end,
     ThreatWarningColor = function() updateNameplateVisuals(); end,
     ThreatAggroColor = function() updateNameplateVisuals(); end,
     ThreatOtherTankColor = function() updateNameplateVisuals(); end,
+    ThreatColorBasedOnPercentage = function() updateNameplateVisuals(); end,
     ShowHighlight = function() updateNameplateVisuals(); end,
     FadeUnselected = function() updateNameplateVisuals(); end,
     FadeIntensity = function() updateNameplateVisuals(); end,
@@ -315,7 +303,7 @@ local functionsTable = {
     CastbarScale = function() updateNameplateVisuals(); end,
     CastbarPositionY = function() updateNameplateVisuals(); end,
     ComboPointsScaleClassless = function() func:Update_ClassPower(); end,
-    AurasCountdownPosition = function() updateAurasVisuals(); end,
+    AurasCountdownPosition = function() updateAuras(); end,
     NameAndGuildOutline = function()
         updateNameplateVisuals();
     end,
@@ -327,6 +315,7 @@ local functionsTable = {
         updateNameplateScale();
         func:ResizeNameplates();
     end,
+    NamesOnlyAlwaysShowTargetsNameplate = function() updateNameplateVisuals(); end,
     NamesOnlyFriendlyPlayers = function() updateNameplateVisuals(); end,
     NamesOnlyEnemyPlayers = function() updateNameplateVisuals(); end,
     NamesOnlyFriendlyPets = function() updateNameplateVisuals(); end,
@@ -355,9 +344,12 @@ local functionsTable = {
         func:PersonalNameplateAdd();
     end,
     PersonalNameplateFade = function() func:ToggleNameplatePersonal(); end,
+    PersonalNameplateFadeIntensity = function() func:PersonalNameplateAdd(); end,
+    PersonalNameplatePointY = function() func:PersonalNameplateAdd(); end,
     SpecialPower = function() func:Update_ClassPower(); end,
     SpecialPowerScale = function() func:Update_ClassPower(); end,
     CastbarIconShow = function() updateNameplateVisuals(); end,
+    BorderColor = function() updateNameplateVisuals(); end,
 }
 
 -- Execute function by passed config name
@@ -451,38 +443,42 @@ end
 -- Reseting Settings
 ----------------------------------------
 function func:ResetSettings(cfg, value, profileID)
-    local frame = _G[value.frame];
-    local default = value.default;
     local type = value.type;
 
     profileID = profileID or CFG_ClassicPlatesPlus.Profile;
 
-    if value.type == "ColorPicker" then
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] or {};
+    if type == "AurasList" then
+        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = {};
+    else
+        local frame = _G[value.frame];
+        local default = value.default;
 
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].r = default.r;
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].g = default.g;
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].b = default.b;
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].a = default.a;
+        if value.type == "ColorPicker" then
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] or {};
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].r = default.r;
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].g = default.g;
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].b = default.b;
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg].a = default.a;
 
-        frame:SetVertexColor(
-            default.r,
-            default.g,
-            default.b,
-            default.a
-        );
-    elseif type == "CheckButton" then
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = default;
+            frame:SetVertexColor(
+                default.r,
+                default.g,
+                default.b,
+                default.a
+            );
+        elseif type == "CheckButton" then
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = default;
 
-        frame:SetChecked(default);
-    elseif type == "Slider" then
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = default;
+            frame:SetChecked(default);
+        elseif type == "Slider" then
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = default;
 
-        frame:SetValue(default);
-    elseif type == "DropDownMenu" then
-        CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = default;
+            frame:SetValue(default);
+        elseif type == "DropDownMenu" then
+            CFG_Account_ClassicPlatesPlus.Profiles[profileID][cfg] = default;
 
-        frame:SetValue(default);
+            frame:SetValue(default);
+        end
     end
 end
 
@@ -511,11 +507,19 @@ function func:CreatePanel(mainPanelName, name)
     local nameDivider = "  |  ";
 
     panel.name = name;
+
     if mainPanelName then
         panel.parent = mainPanelName;
     else
-        nameDivider = "";
-        name = "";
+        local version = C_AddOns.GetAddOnMetadata(name, "Version");
+
+        if version then
+            nameDivider = "  |  ";
+            name = "v".. version;
+        else
+            nameDivider = "";
+            name = "";
+        end
     end
 
     -- Header
@@ -537,45 +541,49 @@ function func:CreatePanel(mainPanelName, name)
     panel.title:SetText("經典血條 Plus" .. nameDivider .. name);
 
     -- Button: Reset all settings
-    panel.resetSettings = CreateFrame("Button", nil, panel.header, "GameMenuButtonTemplate");
-    panel.resetSettings:SetPoint("right", -36, -2);
-    panel.resetSettings:SetSize(96, 22);
-    panel.resetSettings:SetText("預設");
-    panel.resetSettings:SetNormalFontObject("GameFontNormal");
-    panel.resetSettings:SetHighlightFontObject("GameFontHighlight");
+    if mainPanelName then
+        panel.resetSettings = CreateFrame("Button", nil, panel.header, "GameMenuButtonTemplate");
+        panel.resetSettings:SetPoint("right", -36, -2);
+        panel.resetSettings:SetSize(96, 22);
+        panel.resetSettings:SetText("預設值");
+        panel.resetSettings:SetNormalFontObject("GameFontNormal");
+        panel.resetSettings:SetHighlightFontObject("GameFontHighlight");
 
-    -- Static PopUp
-    panel.resetSettings:SetScript("OnClick", function()
-        StaticPopup_Show(myAddon .. "_" .. panel.name .. "_" .. "defaults");
-    end);
+        -- Static PopUp
+        panel.resetSettings:SetScript("OnClick", function()
+            StaticPopup_Show(myAddon .. "_" .. panel.name .. "_" .. "defaults");
+        end);
 
-    StaticPopupDialogs[myAddon .. "_" .. panel.name .. "_" .. "defaults"] = {
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = true,
-        text = "是否要重置經典血條 Plus 的設定?",
-        button1 = "全部的設定",
-        button2 = "取消",
-        button3 = "這些設定",
+        StaticPopupDialogs[myAddon .. "_" .. panel.name .. "_" .. "defaults"] = {
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            text = "是否要重置經典血條 Plus 的設定?",
+            button1 = "所有設定",
+            button2 = "取消",
+            button3 = "這些設定",
 
-        -- Reset All Settings
-        OnAccept = function()
-            for k,v in pairs(data.settings.configs.all) do
-                if k then
-                    func:ResetSettings(k,v);
+            -- Reset All Settings
+            OnAccept = function()
+                for k,v in pairs(data.settings.configs.all) do
+                    if k then
+                        func:ResetSettings(k,v);
+                    end
                 end
-            end
-        end,
+                updateEverything();
+            end,
 
-        -- Reset Current Panel Settings
-        OnAlt = function()
-            for k,v in pairs(data.settings.configs.panels[panel.name]) do
-                if k then
-                    func:ResetSettings(k,v);
+            -- Reset Current Panel Settings
+            OnAlt = function()
+                for k,v in pairs(data.settings.configs.panels[panel.name]) do
+                    if k then
+                        func:ResetSettings(k,v);
+                    end
                 end
+                updateEverything();
             end
-        end
-    };
+        };
+    end
 
     -- Line Divider
     panel.divider = panel.header:CreateTexture();
@@ -610,31 +618,185 @@ function func:CreatePanel(mainPanelName, name)
 end
 
 ----------------------------------------
--- Creating Category
+-- Creating Sub-Category
 ----------------------------------------
-function func:Create_SubCategory(panel, name)
+function func:Create_SubCategory(panel, name, description, size)
     local frameName = myAddon .. "_" .. panel.name .. "_Category_" .. name;
+    local height_2 = 0;
+    local scale = 1;
+    local height_1 = 64;
+    local x_offset = 0;
+    local alpha = 1;
+
+    if size == "small" then
+        x_offset = 22;
+        scale = 0.75;
+        height_1 = 48;
+        alpha = 0.8;
+    end
 
     -- Creating parent
     local parent = CreateFrame("frame", frameName, panel.scrollChild);
-    parent:SetSize(620, 64);
 
     local frame_text = parent:CreateFontString(nil, "overlay", "GameFontHighlightLarge");
-    frame_text:SetPoint("left");
+    frame_text:SetScale(scale);
     frame_text:SetJustifyH("left");
     frame_text:SetText(name);
+    frame_text:SetAlpha(alpha);
 
     frame_text.isTitle = true;
     frame_text.settingsList = {};
 
+    if description and description ~= "" then
+        frame_text:SetPoint("topLeft", 0, -24);
+
+        local text = parent:CreateFontString(nil, "overlay", "GameFontNormal");
+        text:SetPoint("topLeft", frame_text, "bottomLeft", 0, -8);
+        text:SetJustifyH("left");
+        text:SetSpacing(2);
+        text:SetText(description);
+
+        height_2 = height_2 + text:GetStringHeight() + 16;
+    else
+        frame_text:SetPoint("left", x_offset, 0);
+    end
+
+    parent:SetSize(620, height_1 + height_2);
+
     table.insert(panel.list, parent);
+end
+
+----------------------------------------
+-- Create Description
+----------------------------------------
+function func:Create_Description(panel, flair, text)
+
+    -- Creating parent
+    local parent = CreateFrame("frame", nil, panel.scrollChild);
+
+    local description = parent:CreateFontString(nil, "overlay", "GameFontNormal");
+    description:SetPoint("topLeft");
+    description:SetJustifyH("left");
+    description:SetText(text);
+
+    parent:SetSize(620, description:GetStringHeight());
+
+    -- Adding frame to the settings list
+    if data.isClassic and flair.classicEra
+    or data.isCata   and flair.cata
+    or data.isRetail  and flair.retail
+    then
+        table.insert(panel.list, parent);
+    end
+end
+
+----------------------------------------
+-- Create Social Link
+----------------------------------------
+function func:Create_SocialLink(panel, flair, name, image, text, link)
+    local frameName = myAddon .. "_" .. panel.name .. "_SocialLink_" .. name;
+
+    -- Creating parent
+    local parent = CreateFrame("frame", frameName, panel.scrollChild);
+
+    local backdrop = {
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileEdge = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    };
+
+    local imageFrame;
+
+    if image then
+        local icon = parent:CreateTexture();
+        icon:SetParent(parent);
+        icon:SetPoint("topLeft");
+        icon:SetSize(32,32);
+        icon:SetTexture(image);
+
+        imageFrame = icon;
+    end
+
+    local subTitle = parent:CreateFontString(nil, "overlay", "GameFontHighlightLarge");
+    subTitle:SetJustifyH("left");
+    subTitle:SetText(name);
+
+    local dummyText = parent:CreateFontString(nil, "overlay", "GameFontHighlight");
+    dummyText:SetText(link);
+
+    local linkWidth = dummyText:GetStringWidth();
+
+    local inputBox_BG = CreateFrame("Frame", nil, parent, "BackdropTemplate");
+    inputBox_BG:SetSize(linkWidth + 40, 32);
+    inputBox_BG:SetBackdrop(backdrop);
+    inputBox_BG:SetBackdropColor(0, 0, 0, 0.5);
+    inputBox_BG:SetBackdropBorderColor(0.62, 0.62, 0.62);
+    inputBox_BG:EnableMouse(false);
+
+    local inputBox = CreateFrame("EditBox", nil, inputBox_BG);
+    inputBox:SetAllPoints();
+    inputBox:SetFontObject("GameFontHighlight");
+    inputBox:SetMultiLine(false);
+    inputBox:SetTextInsets(10, 10, 0, 0);
+    inputBox:SetMovable(false);
+    inputBox:SetAutoFocus(false);
+    inputBox:SetMaxLetters(0);
+    inputBox:SetText(link);
+    inputBox:SetCursorPosition(0);
+    inputBox:SetScript("OnTextChanged", function(self)
+        self:SetText(link);
+    end);
+    inputBox:SetScript("OnEditFocusGained", function(self)
+        self:HighlightText();
+    end);
+    inputBox:SetScript("OnEditFocusLost", function(self)
+        self:HighlightText(0,0);
+    end);
+    inputBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus();
+        self:ClearHighlightText();
+    end);
+
+    local description;
+    if text ~= "" then
+        description = parent:CreateFontString(nil, "overlay", "GameFontNormal");
+        description:SetPoint("topLeft", inputBox_BG, "bottomLeft", 0, -12);
+        description:SetJustifyH("left");
+        description:SetText(text);
+    end
+
+    if image then
+        subTitle:SetPoint("left", imageFrame, "right", 10, 0);
+        inputBox_BG:SetPoint("topLeft", imageFrame, "bottomLeft", 0, -8);
+    else
+        subTitle:SetPoint("topLeft");
+        inputBox_BG:SetPoint("topLeft", subTitle, "bottomLeft", 0, -12);
+    end
+
+    local SubTitle_height = image and 32 + 8 or subTitle:GetStringHeight() + 12;
+    local Description_height = description and description:GetStringHeight() + 12 or 0;
+    local EditBox_height = inputBox_BG:GetHeight();
+
+    parent:SetSize(620, SubTitle_height + Description_height + EditBox_height);
+
+    -- Adding frame to the settings list
+    if data.isClassic and flair.classicEra
+    or data.isCata   and flair.cata
+    or data.isRetail  and flair.retail
+    then
+        table.insert(panel.list, parent);
+    end
 end
 
 ----------------------------------------
 -- Create CheckButton
 ----------------------------------------
 function func:Create_CheckButton(panel, flair, name, tooltip, cfg, default)
-    local frameName = myAddon .. "_" .. panel.name .. "_CheckButton_" .. name;
+    local frameName = myAddon .. "_" .. panel.name .. "_CheckButton_" .. cfg;
 
     if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] == nil then
         CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] = default;
@@ -693,7 +855,7 @@ end
 -- Create DropDown Menu
 ----------------------------------------
 function func:Create_DropDownMenu(panel, flair, name, tooltip, cfg, default, options)
-    local frameName = myAddon .. "_" .. panel.name .. "_DropDownMenu_" .. name;
+    local frameName = myAddon .. "_" .. panel.name .. "_DropDownMenu_" .. cfg;
 
     -- Adding CFG_ClassicPlatesPlus
     if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] == nil then
@@ -789,7 +951,7 @@ end
 -- Create Slider
 ----------------------------------------
 function func:Create_Slider(panel, flair, name, tooltip, cfg, default, step, minValue, maxValue, decimals)
-    local frameName = myAddon .. "_" .. panel.name .. "_Slider_" .. name;
+    local frameName = myAddon .. "_" .. panel.name .. "_Slider_" .. cfg;
     local format = "%." .. decimals .. "f";
 
     -- Adding CFG_ClassicPlatesPlus
@@ -864,7 +1026,7 @@ end
 -- Create Color Picker
 ----------------------------------------
 function func:Create_ColorPicker(panel, flair, name, tooltip, cfg, default)
-    local frameName = myAddon .. "_" .. panel.name .. "_ColorPicker_" .. name;
+    local frameName = myAddon .. "_" .. panel.name .. "_ColorPicker_" .. cfg;
 
     -- Adding CFG_ClassicPlatesPlus
     if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] == nil then
@@ -1010,10 +1172,21 @@ end
 ----------------------------------------
 -- Creating Spacer
 ----------------------------------------
-function func:Create_Spacer(panel)
+function func:Create_Spacer(panel, type)
     -- Creating parent
     local parent = CreateFrame("frame", nil, panel.scrollChild);
-    parent:SetSize(620, 24);
+
+    if type then
+        if type == "small" then
+            parent:SetSize(620, 16);
+        elseif type == "medium" then
+            parent:SetSize(620, 24);
+        elseif type == "big" then
+            parent:SetSize(620, 36);
+        end
+    else
+        parent:SetSize(620, 24);
+    end
 
     -- Adding frame to the settings list
     table.insert(panel.list, parent);
@@ -1023,9 +1196,8 @@ end
 -- Auras list
 ----------------------------------------
 function func:Create_AurasList(panel, name, cfg)
-    if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] == nil then
-        CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] = {};
-    end
+    -- Storing Auras List in Character's saved variables instead of account saved variables.
+    CFG_ClassicPlatesPlus[cfg] = CFG_ClassicPlatesPlus[cfg] or {};
 
     panel.scrollChild.auras = panel.scrollChild.auras or {};
 
@@ -1122,7 +1294,6 @@ function func:Create_AurasList(panel, name, cfg)
         frame_PopUp.input:SetText("");
     end);
 
-
     -- Button
     frame_PopUp.Button = CreateFrame("Button", nil, frame_PopUp, "GameMenuButtonTemplate");
     frame_PopUp.Button:SetPoint("right", frame_PopUp.ButtonClose, "left");
@@ -1132,13 +1303,15 @@ function func:Create_AurasList(panel, name, cfg)
     frame_PopUp.Button:SetHighlightFontObject("GameFontHighlight");
     frame_PopUp.Button:Hide();
 
+    -- Adding aura
     local function addSpell(list, input)
-        local spellName = C_Spell.GetSpellName(input);
+        if input and input ~= "" then
+            local spellName = C_Spell.GetSpellName(input);
 
-        if input ~= "" then
             if spellName then
                 if not list[input] then
                     list[input] = 1;
+
                     return true,  '|cfff563ff[經典血條 Plus]: |cff00eb00'..'已新增: '..spellName;
                 elseif list[input] then
                     return false, '|cfff563ff[經典血條 Plus]: |cffe3eb00"'..spellName..' 已經在清單中';
@@ -1149,52 +1322,30 @@ function func:Create_AurasList(panel, name, cfg)
         end
     end
 
+    -- Updating List
     local function updateAurasList()
-        local sorted = {};
+        local alphaEnter = 0.33;
+        local alphaLeave = 0.075;
         local sorter = {};
 
-        local function pairsByKeys(t)
-            local a = {};
+        -- Updating auras chache
+        func:CacheAurasInfo(cfg);
 
-            for n in pairs(t) do
-                table.insert(a, n);
-            end
-
-            table.sort(a);
-
-            local i = 0;
-            local function iter()
-                i = i + 1;
-
-                if a[i] == nil then
-                    return nil;
-                else
-                    return a[i], t[a[i]];
-                end
-            end
-
-            return iter;
-        end
-
-        data.settings[cfg] = {};
-        for k in pairs(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg]) do
+        for k,v in pairs(data.settings[cfg]) do
             if k then
-                local spellInfo = C_Spell.GetSpellInfo(k);
-
-                if spellInfo then
-                    sorter[spellInfo.name] = { icon = spellInfo.iconID, id = k };
-                    data.settings[cfg][spellInfo.name] = 1;
-                end
+                table.insert(sorter, v);
             end
         end
 
-        for k,v in pairsByKeys(sorter) do
-            if pairsByKeys then
-                local aura = { name = k, icon = v.icon, id = v.id };
-                table.insert(sorted, aura);
-            end
+        -- Custom comparator function to sort by age
+        local function compareByName(a, b)
+            return a.name < b.name
         end
 
+        -- Sort the table using the comparator function
+        table.sort(sorter, compareByName);
+
+        -- Anchoring frames
         local function anchor(index)
             if index == 1 then
                 return "topLeft", 280, -24;
@@ -1203,10 +1354,14 @@ function func:Create_AurasList(panel, name, cfg)
             end
         end
 
-        local alphaEnter = 0.33;
-        local alphaLeave = 0.075;
+        -- Hiding all auras
+        for k,v in pairs(panel.scrollChild.auras) do
+            if k then
+                v:Hide();
+            end
+        end
 
-        for k,v in ipairs(sorted) do
+        for k,v in ipairs(sorter) do
             if k then
                 if not panel.scrollChild.auras[k] then
                     panel.scrollChild.auras[k] = CreateFrame("frame", nil, panel.scrollChild);
@@ -1240,6 +1395,8 @@ function func:Create_AurasList(panel, name, cfg)
                     panel.scrollChild.auras[k].background:SetAlpha(alphaLeave);
                     panel.scrollChild.auras[k].background:SetDrawLayer("background", 1);
                 else
+                    panel.scrollChild.auras[k]:ClearAllPoints();
+                    panel.scrollChild.auras[k]:SetPoint(anchor(k));
                     panel.scrollChild.auras[k].icon:SetTexture(v.icon);
                     panel.scrollChild.auras[k].name:SetText(v.name);
                     panel.scrollChild.auras[k]:Show();
@@ -1265,7 +1422,7 @@ function func:Create_AurasList(panel, name, cfg)
 
                 -- Remove button
                 panel.scrollChild.auras[k].remove:SetScript("OnClick", function()
-                    CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg][v.id] = nil;
+                    CFG_ClassicPlatesPlus[cfg][v.id] = nil;
 
                     -- Hiding all auras, list update will re-enable esixting one
                     for _, v in pairs(panel.scrollChild.auras) do
@@ -1280,7 +1437,7 @@ function func:Create_AurasList(panel, name, cfg)
             end
         end
 
-        if #sorted == 0 then
+        if #sorter == 0 then
             if not panel.note then
                 panel.note = panel.scrollChild:CreateFontString(nil, "overlay", "GameFontHighlight");
                 panel.note:SetPoint("left", 345, -68);
@@ -1301,6 +1458,10 @@ function func:Create_AurasList(panel, name, cfg)
             end
         end
     end
+
+    panel.scrollChild:SetScript("OnShow", function()
+        updateAurasList();
+    end);
 
     -- Creating parent
     local parent = CreateFrame("frame", nil, panel.scrollChild);
@@ -1344,7 +1505,7 @@ function func:Create_AurasList(panel, name, cfg)
     end);
 
     frame_EditBox:SetScript("OnEnterPressed", function(self)
-        local added, status = addSpell(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg], self:GetText());
+        local added, status = addSpell(CFG_ClassicPlatesPlus[cfg], self:GetText());
 
         if added then
             self:SetText("");
@@ -1366,7 +1527,7 @@ function func:Create_AurasList(panel, name, cfg)
 
     -- EditBox, button pressed
     frame_EditBox.addButton:SetScript("OnClick", function()
-        local added, status = addSpell(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg], frame_EditBox:GetText());
+        local added, status = addSpell(CFG_ClassicPlatesPlus[cfg], frame_EditBox:GetText());
 
         if added then
             frame_EditBox:SetText("");
@@ -1428,7 +1589,7 @@ function func:Create_AurasList(panel, name, cfg)
 
             for k,v in ipairs(result) do
                 if k then
-                    local added, status = addSpell(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg], v);
+                    local added, status = addSpell(CFG_ClassicPlatesPlus[cfg], v);
 
                     if not confirm and added then
                         confirm = added;
@@ -1486,7 +1647,7 @@ function func:Create_AurasList(panel, name, cfg)
 
         local export;
 
-        for k,v in pairs(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg]) do
+        for k,v in pairs(CFG_ClassicPlatesPlus[cfg]) do
             if k then
                 if not export then
                     export = tostring(k);
@@ -1529,7 +1690,7 @@ function func:Create_AurasList(panel, name, cfg)
         button1 = "全部移除",
         button2 = "取消",
         OnAccept = function()
-            CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile][cfg] = {};
+            CFG_ClassicPlatesPlus[cfg] = {};
 
             for k,v in pairs(panel.scrollChild.auras) do
                 if k then
@@ -1548,6 +1709,12 @@ function func:Create_AurasList(panel, name, cfg)
     frame_RemoveAllButton:SetScript("OnClick", function()
         StaticPopup_Show(dialogName_removeAll);
     end);
+
+    -- CFG_ClassicPlatesPlus table
+    local config = {type = "AurasList"};
+
+    -- Adding config to a complete list of configs
+    data.settings.configs.all[cfg] = config;
 
     -- Update
     updateAurasList();
@@ -1579,13 +1746,6 @@ function func:Create_Profiles(panel, name, cfg, default)
     end
 
     local function CloseAllStaticPopups()
-        --[[for index = 1, STATICPOPUP_NUMDIALOGS do
-            local dialog = _G["StaticPopup" .. index]
-            if dialog and dialog:IsShown() then
-                StaticPopup_Hide(dialog.which)
-            end
-        end]]
-
         local dialogsToClose = {
             "RENAME_PROFILE_DIALOG",
             "CREATE_NEW_PROFILE_DIALOG",
@@ -1606,85 +1766,87 @@ function func:Create_Profiles(panel, name, cfg, default)
         local serialized = "{"
 
         for key, value in pairs(configsTable) do
-            local valueType = type(value)
+            local valueType = type(value);
 
             if valueType == "string" then
-                value = "\"" .. value .. "\""
+                value = "\"" .. value .. "\"";
             elseif valueType == "boolean" then
-                value = tostring(value)
+                value = tostring(value);
             elseif valueType == "table" then
-                value = serializeTable(value)
+                value = serializeTable(value);
             end
 
-            serialized = serialized .. key .. "=" .. value .. ","
+            serialized = serialized .. key .. "=" .. value .. ",";
         end
 
         if serialized:sub(-1) == "," then
-            serialized = serialized:sub(1, -2)
+            serialized = serialized:sub(1, -2);
         end
 
-        serialized = serialized .. "}"
+        serialized = serialized .. "}";
 
-        return serialized
+        return serialized;
     end
 
     local function deserializeTable(serialized)
         local function parseValue(value)
             if value:sub(1, 1) == "{" and value:sub(-1) == "}" then
-                return deserializeTable(value:sub(2, -2))
+                return deserializeTable(value:sub(2, -2));
             elseif value == "true" or value == "false" then
-                return value == "true"
+                return value == "true";
             elseif tonumber(value) then
-                return tonumber(value)
+                return tonumber(value);
             elseif value:sub(1, 1) == "\"" and value:sub(-1) == "\"" then
-                return value:sub(2, -2)
+                return value:sub(2, -2);
             else
-                return value
+                return value;
             end
         end
 
-        local configsTable = {}
-        serialized = serialized:sub(2, -2)
+        local configsTable = {};
 
-        local currentKey = nil
-        local nestedLevel = 0
-        local buffer = ""
-        local inQuotes = false
+        serialized = serialized:sub(2, -2);
+
+        local currentKey = nil;
+        local nestedLevel = 0;
+        local buffer = "";
+        local inQuotes = false;
 
         for char in serialized:gmatch(".") do
             if char == "\"" then
-                inQuotes = not inQuotes
-                buffer = buffer .. char
+                inQuotes = not inQuotes;
+                buffer = buffer .. char;
             elseif char == "{" and not inQuotes then
-                nestedLevel = nestedLevel + 1
-                buffer = buffer .. char
+                nestedLevel = nestedLevel + 1;
+                buffer = buffer .. char;
             elseif char == "}" and not inQuotes then
-                nestedLevel = nestedLevel - 1
-                buffer = buffer .. char
+                nestedLevel = nestedLevel - 1;
+                buffer = buffer .. char;
+
                 if nestedLevel == 0 then
                     if currentKey then
-                        configsTable[currentKey] = parseValue(buffer)
+                        configsTable[currentKey] = parseValue(buffer);
                     end
-                    currentKey, buffer = nil, ""
+                    currentKey, buffer = nil, "";
                 end
             elseif char == "," and nestedLevel == 0 and not inQuotes then
                 if currentKey then
-                    configsTable[currentKey] = parseValue(buffer)
-                    currentKey, buffer = nil, ""
+                    configsTable[currentKey] = parseValue(buffer);
+                    currentKey, buffer = nil, "";
                 end
             elseif char == "=" and nestedLevel == 0 and not inQuotes then
-                currentKey = buffer
-                buffer = ""
+                currentKey = buffer;
+                buffer = "";
             else
-                buffer = buffer .. char
+                buffer = buffer .. char;
             end
         end
 
         if currentKey then
-            configsTable[currentKey] = parseValue(buffer)
+            configsTable[currentKey] = parseValue(buffer);
         end
 
-        return configsTable
+        return configsTable;
     end
 
     local function PopUp(f, type)
@@ -1759,7 +1921,7 @@ function func:Create_Profiles(panel, name, cfg, default)
 
     -- Line Divider
     newPanel.divider = newPanel:CreateTexture();
-    newPanel.divider:SetPoint("topLeft", 370, -106);
+    newPanel.divider:SetPoint("topLeft", 360, -106);
     newPanel.divider:SetPoint("topRight", -40, -106);
     newPanel.divider:SetAlpha(0.5);
     newPanel.divider:SetHeight(1);
@@ -1767,7 +1929,7 @@ function func:Create_Profiles(panel, name, cfg, default)
 
     -- Scroll Frame
     newPanel.scrollFrame = CreateFrame("ScrollFrame", nil, newPanel, "ScrollFrameTemplate");
-    newPanel.scrollFrame:SetPoint("topLeft", 370, -108);
+    newPanel.scrollFrame:SetPoint("topLeft", 360, -108);
     newPanel.scrollFrame:SetPoint("bottomRight", -26, 0);
 
     -- Scroll Child
@@ -1879,7 +2041,7 @@ function func:Create_Profiles(panel, name, cfg, default)
     frame_PopUp.Cancel = CreateFrame("Button", nil, frame_PopUp, "GameMenuButtonTemplate");
     frame_PopUp.Cancel:SetNormalFontObject("GameFontNormal");
     frame_PopUp.Cancel:SetHighlightFontObject("GameFontHighlight");
-    frame_PopUp.Cancel:SetText("Cancel");
+    frame_PopUp.Cancel:SetText("取消");
     frame_PopUp.Cancel:SetSize(frame_PopUp.Cancel:GetFontString():GetStringWidth() + 48, 22);
     frame_PopUp.Cancel:SetScript("OnClick", function()
         frame_PopUp:Hide();
@@ -2032,19 +2194,10 @@ function func:Create_Profiles(panel, name, cfg, default)
             end
         end);
 
-        --[[table.sort(sorted, function(a, b)
-            if a.id == CFG_ClassicPlatesPlus.Profile then
-                return true
-            elseif b.id == CFG_ClassicPlatesPlus.Profile then
-                return false
-            else
-                return a.displayName < b.displayName
-            end
-        end)]]
-
         local alphaLeave = 0.1;
         local alphaHover = 0.15;
         local alphaEnter = 0.3;
+        local list_width = 280;
 
         local function anchor(list, index)
             if index == 1 then
@@ -2076,11 +2229,11 @@ function func:Create_Profiles(panel, name, cfg, default)
                     list[k].name = newPanel.scrollFrame.scrollChild:CreateFontString(nil, "overlay", "GameFontNormal");
                     list[k].name:SetParent(list[k]);
                     list[k].name:SetPoint("left", 10, 0);
-                    list[k].name:SetWidth(233);
+                    list[k].name:SetWidth(list_width - 20);
                     list[k].name:SetJustifyH("left");
                     list[k].name:SetText(v.displayName);
 
-                    list[k]:SetSize(260, list[k].name:GetHeight() + 16);
+                    list[k]:SetSize(list_width, list[k].name:GetHeight() + 16);
 
                     list[k].background = newPanel.scrollFrame.scrollChild:CreateTexture();
                     list[k].background:SetParent(list[k]);
@@ -2090,7 +2243,7 @@ function func:Create_Profiles(panel, name, cfg, default)
                 else
                     list[k]:SetPoint(anchor(list, k));
                     list[k].name:SetText(v.displayName);
-                    list[k]:SetSize(260, list[k].name:GetHeight() + 16);
+                    list[k]:SetSize(list_width, list[k].name:GetHeight() + 16);
                     list[k]:Show();
                 end
 
@@ -2228,6 +2381,8 @@ function func:Create_Profiles(panel, name, cfg, default)
         end
 
         updateProfilesList();
+        func:CacheAurasInfo("AurasImportantList");
+        func:CacheAurasInfo("AurasBlacklist");
         updateEverything();
     end);
 

@@ -1,14 +1,14 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110100
 ## Title: MDTGuide
 ## Notes: Guide mode for Mythic Dungeon Tools.
 ## Notes-deDE: Guide-Modus für Mythic Dungeon Tools.
-## Version: 1.36
+## Version: 1.37
 ## OptionalDeps: MythicDungeonTools
 ## SavedVariables: MDTGuideDB, MDTGuideActive, MDTGuideOptions
 
 ## Title-zhTW: |cffFF7F00[M+]|r 地城規劃工具-導覽視窗
 ## Notes-zhTW: MDT Guide |n|n傳奇+ 地城規劃工具的迷你導覽視窗。|n|n|cffffd200使用方法: |r點主視窗右上角的縮小箭頭切換成迷你導覽視窗。
-## X-Category-zhTW: 團隊
+## Category-zhTW: 團隊
 ## IconTexture: Interface\AddOns\MythicDungeonTools\Textures\Nnoggie
 ## DefaultState: disabled
 ## Dependencies: MythicDungeonTools

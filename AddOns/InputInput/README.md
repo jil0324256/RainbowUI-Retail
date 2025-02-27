@@ -5,7 +5,7 @@
 - 正式服可以进入编辑模式编辑
 - 频道颜色、Tab切换频道 Channel color, Tab to switch channel
 - 历史记录（⬆️⬇️） Historical records
-- 输入提示、自动补充（Control+Enter） Input prompts, automatic supplementation
+- 输入提示、自动补充（Control+数字） Input prompts, automatic addition (Control+numbers)
 - 撤销（Control+Z）反撤销（Control+Shift+Z） undo、redo
 - 最近消息 Recent chat messages
 
@@ -24,6 +24,7 @@
 - ElvUI
 - NdUI
 - 大脚（BigFoot）
+- LS_GLass
 
 # 本地化 Locales：
 - 英语 enUS
@@ -37,11 +38,11 @@
 - 以上未列出的功能均为暴雪默认的交互逻辑 The functions not listed above are Blizzard's default interaction logic
 - 以上为机翻，请见谅 The above is machine translation, please forgive me
 
-# 开发者功能 Developer Features:
+<!-- # 开发者功能 Developer Features:
 - /sp ? 指令：相当于/script print(?) （/sp ?  Instruction: Equivalent to /script print (?)）
 - /sps ? 指令：相当于/script print("?") （/sps ?  Instruction: Equivalent to /script print ("?")）
 - /spa ? 指令：相当于/script for _, v in ipairs(?) do print(v) end （/spa ?  Instruction: Equivalent to /script for _, v in ipairs(?) do print(v) end）
-- /spt ? 指令：相当于/script for k, v in pairs(?) do print(k, v) end （/spt ?  Instruction: Equivalent to /script for k, v in pairs(?) do print(k, v) end）
+- /spt ? 指令：相当于/script for k, v in pairs(?) do print(k, v) end （/spt ?  Instruction: Equivalent to /script for k, v in pairs(?) do print(k, v) end） -->
 
 # 关于作者 Author：
 **York**
@@ -53,5 +54,12 @@
 
 # Discord
 [https://discord.gg/qC9RAdXN](https://discord.gg/qC9RAdXN)
+
+# KOOK(国服)
+[https://kook.vip/vghP6R](https://kook.vip/vghP6R)
+
+# 抖音直播间 Tiktok live(only China)
+[https://live.douyin.com/232963549806](https://live.douyin.com/232963549806)
+
 # LICENSE：
 GNU GENERAL PUBLIC LICENSE

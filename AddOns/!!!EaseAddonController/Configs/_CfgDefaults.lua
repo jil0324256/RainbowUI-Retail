@@ -939,7 +939,7 @@ D["EnhBloodlust"] = {
 	defaultEnable = 1,
 	tags = { "COMBAT" },
 	title = "嗜血音樂",
-	desc = "為嗜血和英勇效果添加超棒的音樂。``這次的音樂是：`APT`by ROSÉ & Bruno Mars``https://www.youtube.com/watch?v=ekr2nIex040",
+	desc = "為嗜血和英勇效果添加超棒的音樂。``這次的音樂是：`水晶晶 สวยจริงๆ DJ-YOYO REMIX`by 嘻小瓜 KUAKUA``https://www.youtube.com/watch?v=OsOmgCwfp8c",
 	icon = "Interface\\Icons\\spell_nature_bloodlust",
 	img = true,
 	{
@@ -1104,7 +1104,7 @@ D["GladiatorlosSA2"] = {
 };
 D["GladiusEx"] = {
 	defaultEnable = 0,
-	title = "競技場頭像Ex",
+	title = "(暫時停用) 競技場頭像Ex",
 	desc = "加強版的競技場專用單位框架，提供友方和敵方框架以及更多功能。`",
 	author = "slaren, vendethiel64928",
 	modifier = "HouMuYi, jyzjl, 彩虹ui",
@@ -1249,14 +1249,18 @@ D["HidingBar"] = {
 D["IcyVeinsStatPriority"] = {
 	defaultEnable = 1,
 	tags = { "ITEM" },
-	title = "裝備屬性建議",
-	desc = "根據職業和專精，在角色資訊視窗上方顯示裝備屬性選擇優先順序的建議。``此建議適用於大部分的情況，但因為天賦、配裝和手法流派不同，所需求的屬性可能不太一樣。建議依據你的實際配裝和手法，到討論區爬文或和其他玩家討論。``如有需要，也可以自行編輯屬性順序或加上註解，以符合個人需求。``資料來源：icy-veins.com`",
+	title = "裝備屬性參考",
+	desc = "根據職業和專精，在角色資訊視窗上方顯示裝備屬性選擇優先順序的參考值。``此優先順序僅適用於大部分的情況，但因為天賦、配裝和手法流派不同，所需求的屬性可能不太一樣。尤其是要打  M+、英雄和M團本的玩家，建議依據你的實際配裝和手法，到網站爬文或和其他玩家討論。``另一種用法是，自行編輯屬性順序或加上註解，以符合個人需求。``資料來源：icy-veins.com`",
 	modifier = "彩虹ui",
 	icon = "Interface\\Icons\\ability_paladin_beaconoflight",
 	-- img = true,
 	{
 		type = "text",
-		text = "在屬性建議文字上面點一下\n\n左鍵: 打開設定選項。\n\n右鍵: 查看所有職業的屬性。\n",
+		text = "在屬性建議文字上面點一下\n\n左鍵: 打開設定選項。\n\n右鍵: 查看所有職業的屬性。\n\n",
+	},
+	{
+		type = "text",
+		text = "自訂屬性順序: 用記事本編輯\nAddOns\IcyVeinsStatPriority\Data.lua\n",
 	},
 };
 D["Immersion"] = {
@@ -2624,7 +2628,7 @@ D["tullaRange"] = {
     {
         text = "設定選項",
         callback = function() 
-			Settings.OpenToCategory("快捷列-著色")
+			Settings.OpenToCategory("tullaRange")
 		end,
     },
 };

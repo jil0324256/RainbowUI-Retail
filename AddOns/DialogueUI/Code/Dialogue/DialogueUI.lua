@@ -39,9 +39,9 @@ local BUTTON_HORIZONTAL_GAP = 8.0;
 local FRAME_OFFSET_RATIO = 3/4;     --Center align to 1/4 of the WorldFrame width (to the right)
 
 local FONT_SIZE = 12;
-local TEXT_SPACING = FONT_SIZE*0.35;                 --Font Size /3
+local TEXT_SPACING = FONT_SIZE*0.35;                --Font Size /3
 local PARAGRAPH_SPACING = 4*TEXT_SPACING;           --4 * TEXT_SPACING
-local PARAGRAPH_BUTTON_SPACING = 2*FONT_SIZE;    --Font Size * 2
+local PARAGRAPH_BUTTON_SPACING = 2*FONT_SIZE;       --Font Size * 2
 
 local CreateFrame = CreateFrame;
 local C_CampaignInfo = C_CampaignInfo;
@@ -86,7 +86,7 @@ local tinsert = table.insert;
 local tsort = table.sort;
 local find = string.find;
 
-local Esaing_OutSine = addon.EasingFunctions.outSine;
+local Easing_Func = addon.EasingFunctions.outSine;
 local Round = API.Round;
 
 local MainFrame;
@@ -102,8 +102,7 @@ addon.SharedVignette = SharedVignette;
 DUIDialogBaseMixin = {};
 
 function DUIDialogBaseMixin:CalculateBestFrameHeight()
-    local viewportWidth, viewportHeight = WorldFrame:GetSize(); --height unaffected by screen resolution
-
+    local viewportWidth, viewportHeight = API.GetBestViewportSize();
     local heightRatio = 0.618;
     local frameHeight = heightRatio * viewportHeight;
     local heightInPixel = API.GetSizeInPixel(self:GetEffectiveScale(), frameHeight);
@@ -395,6 +394,7 @@ function DUIDialogBaseMixin:OnLoad()
         button.type = nil;
         button.hasQuestType = nil;
         button.rightFrameWidth = nil;
+        button.extraObjects = nil;
     end
 
     local function OnAcquireOptionButton(button)
@@ -625,7 +625,7 @@ function DUIDialogBaseMixin:AcquireAcceptButton(enableHotkey)
     self.AcceptButton:Show();
 
     if enableHotkey then
-        KeyboardControl:SetKeyButton("PRIMARY", self.AcceptButton);
+        KeyboardControl:SetAction("Confirm", self.AcceptButton);
     end
 
     return self.AcceptButton
@@ -644,7 +644,7 @@ function DUIDialogBaseMixin:AcquireExitButton()
     self.ExitButton:Hide();
     self.ExitButton:Show();
 
-    KeyboardControl:SetKeyButton("ESCAPE", self.ExitButton);
+    KeyboardControl:SetAction("Exit", self.ExitButton);
 
     return self.ExitButton
 end
@@ -677,9 +677,13 @@ function DUIDialogBaseMixin:FlagPreviousGossipButtons()
     );
 end
 
-function DUIDialogBaseMixin:AcquireLeftFontString()
+function DUIDialogBaseMixin:AcquireLeftFontString(fontObject)
     local fs = self:AcquireFontString();
-    fs:SetFontObject("DUIFont_Quest_Paragraph");
+    if fontObject then
+        fs:SetFontObject(fontObject);
+    else
+        fs:SetFontObject("DUIFont_Quest_Paragraph");
+    end
     fs:SetJustifyV("TOP");
     fs:SetJustifyH("LEFT");
     return fs
@@ -743,6 +747,7 @@ function DUIDialogBaseMixin:UseQuestLayout(state)
         if questID and API.IsQuestFlaggedCompletedOnAccount(questID) then
             self.WarbandCompleteAlert:Show();
             self.FrontFrame.Header.Title:SetPoint("RIGHT", self.FrontFrame.Header, "RIGHT", -56, 2);
+            CallbackRegistry:TriggerOnNextUpdate("WarbandCompleteAlert.Show", self.FrontFrame.Header, self.WarbandCompleteAlert);
         else
             self.WarbandCompleteAlert:Hide();
             self.FrontFrame.Header.Title:SetPoint("RIGHT", self.FrontFrame.Header, "RIGHT", -8, 2);
@@ -814,7 +819,7 @@ function DUIDialogBaseMixin:UpdateQuestTitle(method)
             HeaderWidgetManger:AddQuestRemainingTime(seconds);
         end
 
-        HeaderWidgetManger:RequestQuestLineQuest(questID);
+        HeaderWidgetManger:RequestQuestData(questID);
     end
 
     local decor = API.GetQuestBackgroundDecor(questID);
@@ -960,9 +965,9 @@ function DUIDialogBaseMixin:FadeInContentFrame()
     end
 end
 
-function DUIDialogBaseMixin:InsertText(offsetY, text)
+function DUIDialogBaseMixin:InsertText(offsetY, text, fontObject)
 	--Add no spacing
-	local fs = self:AcquireLeftFontString();
+	local fs = self:AcquireLeftFontString(fontObject);
 	fs:SetPoint("TOPLEFT", self.ContentFrame, "TOPLEFT", PADDING_H * FRAME_SIZE_MULTIPLIER, -offsetY);
 	fs:SetPoint("RIGHT", self.ContentFrame, "RIGHT", -PADDING_H * FRAME_SIZE_MULTIPLIER, 0);
 	fs:SetText(text);
@@ -970,9 +975,9 @@ function DUIDialogBaseMixin:InsertText(offsetY, text)
 	return offsetY
 end
 
-function DUIDialogBaseMixin:InsertParagraph(offsetY, paragraphText)
+function DUIDialogBaseMixin:InsertParagraph(offsetY, paragraphText, fontObject)
 	--Add paragrah spacing
-	return self:InsertText(offsetY + PARAGRAPH_SPACING, paragraphText);
+	return self:InsertText(offsetY + PARAGRAPH_SPACING, paragraphText, fontObject);
 end
 
 function DUIDialogBaseMixin:FormatParagraph(offsetY, text)
@@ -1002,6 +1007,43 @@ function DUIDialogBaseMixin:FormatParagraph(offsetY, text)
     end
 
     return offsetY, firstObject, lastObject
+end
+
+function DUIDialogBaseMixin:FormatDualParagraph(offsetY, text1, text2)
+    --For Dual-language addons
+    --Format: paragraph1, translatedPargraph1, paragraph2, translatedPargraph2, ...
+
+    local paragraphs2 = text2 and API.SplitParagraph(text2);
+    if paragraphs2 and #paragraphs2 > 0 then
+        local paragraphs1 = API.SplitParagraph(text1);
+        if paragraphs1 and #paragraphs1 > 0 then
+            local firstObject, lastObject;
+            local maxIndex = math.max(#paragraphs1, #paragraphs2);
+            local sources = {paragraphs1, paragraphs2};
+            for i = 1, maxIndex do
+                for j = 1, 2 do
+                    local para = sources[j];
+                    if para[i] then
+                        local fs = self:AcquireLeftFontString((j == 2 and "DUIFont_Quest_MultiLanguage") or "DUIFont_Quest_Paragraph");
+                        if not firstObject then
+                            firstObject = fs;
+                        end
+                        fs:SetPoint("TOPLEFT", self.ContentFrame, "TOPLEFT", PADDING_H * FRAME_SIZE_MULTIPLIER, -offsetY);
+                        fs:SetPoint("RIGHT", self.ContentFrame, "RIGHT", -PADDING_H * FRAME_SIZE_MULTIPLIER, 0);
+                        fs:SetText(para[i]);
+                        offsetY = Round(offsetY + fs:GetHeight() + PARAGRAPH_SPACING);
+                        lastObject = fs;
+                    end
+                end
+            end
+            offsetY = offsetY - PARAGRAPH_SPACING;
+            return offsetY, firstObject, lastObject
+        else
+            return self:FormatParagraph(offsetY, text1)
+        end
+    else
+        return self:FormatParagraph(offsetY, text1)
+    end
 end
 
 local function ConcatenateNPCName(text)
@@ -1063,7 +1105,7 @@ local function HandleAutoSelect(options, activeQuests, availableQuests, anyOptio
 
     local onlyOption = #options == 1;
 
-    if (not GetDBBool("ForceGossip")) and (not (anyActiveQuest or anyAvailableQuest)) and (onlyOption) and (not ForceGossip()) then
+    if (not (anyActiveQuest or anyAvailableQuest)) and (onlyOption) and ( (not GetDBBool("ForceGossip")) or (GetDBBool("ForceGossipSkipGameObject") and API.IsInteractingWithGameObject()) ) and (not ForceGossip()) then
         if options[1].selectOptionWhenOnlyOption then
             C_GossipInfo.SelectOptionByIndex(options[1].orderIndex);
             return true
@@ -1212,7 +1254,7 @@ function DUIDialogBaseMixin:HandleGossip()
             hotkeyIndex = hotkeyIndex + 1;
             button = self:AcquireOptionButton();
             if enableGossipHotkey then
-                hotkey = KeyboardControl:SetKeyButton(hotkeyIndex, button);
+                hotkey = KeyboardControl:SetIndexedAction(hotkeyIndex, button);
             else
                 hotkey = nil;
             end
@@ -1226,7 +1268,7 @@ function DUIDialogBaseMixin:HandleGossip()
             hotkeyIndex = hotkeyIndex + 1;
             button = self:AcquireOptionButton();
             if enableGossipHotkey then
-                hotkey = KeyboardControl:SetKeyButton(hotkeyIndex, button);
+                hotkey = KeyboardControl:SetIndexedAction(hotkeyIndex, button);
             else
                 hotkey = nil;
             end
@@ -1288,7 +1330,7 @@ function DUIDialogBaseMixin:HandleGossip()
     for i, questInfo in ipairs(quests) do
         hotkeyIndex = hotkeyIndex + 1;
         button = self:AcquireOptionButton();
-        hotkey = KeyboardControl:SetKeyButton(hotkeyIndex, button);
+        hotkey = KeyboardControl:SetIndexedAction(hotkeyIndex, button);
 
         if questInfo.isAvailableQuest then
             button:SetAvailableQuest(questInfo, questInfo.index, hotkey);
@@ -1330,7 +1372,7 @@ function DUIDialogBaseMixin:HandleGossip()
             hotkeyIndex = hotkeyIndex + 1;
             button = self:AcquireOptionButton();
             if enableGossipHotkey then
-                hotkey = KeyboardControl:SetKeyButton(hotkeyIndex, button);
+                hotkey = KeyboardControl:SetIndexedAction(hotkeyIndex, button);
             else
                 hotkey = nil;
             end
@@ -1344,7 +1386,7 @@ function DUIDialogBaseMixin:HandleGossip()
             hotkeyIndex = hotkeyIndex + 1;
             button = self:AcquireOptionButton();
             if enableGossipHotkey then
-                hotkey = KeyboardControl:SetKeyButton(hotkeyIndex, button);
+                hotkey = KeyboardControl:SetIndexedAction(hotkeyIndex, button);
             else
                 hotkey = nil;
             end
@@ -1370,7 +1412,7 @@ function DUIDialogBaseMixin:HandleGossip()
 
     if not (#options > 0 or anyQuest) then
         --If there is no options, allow pressing SPACE to goodbye
-        KeyboardControl:SetKeyButton("PRIMARY", GoodbyeButton);
+        KeyboardControl:SetAction("Confirm", GoodbyeButton);
     end
 
     local objectHeight = firstObject:GetTop() - lastObject:GetBottom();
@@ -1419,17 +1461,12 @@ function DUIDialogBaseMixin:HandleQuestDetail(playFadeIn)
     end
 
 
-    local text;
-
     --Title
     local offsetY = self:UpdateQuestTitle("Detail");
 
     --Detail
-    text = ConcatenateNPCName(GetQuestText("Detail"));
-    if text then
-        offsetY = offsetY + PARAGRAPH_SPACING;
-        offsetY = self:FormatParagraph(offsetY, text);
-    end
+    local translatedObjectiveText;
+    offsetY, translatedObjectiveText = self:FormatQuestText(offsetY, "Detail");
 
     --Objectives
     local objectiveText = GetObjectiveText();
@@ -1441,7 +1478,11 @@ function DUIDialogBaseMixin:HandleQuestDetail(playFadeIn)
         offsetY = Round(offsetY + subheader.size);
 
         --Objective Texts
-        offsetY = self:FormatParagraph(offsetY, objectiveText);
+        if translatedObjectiveText then
+            offsetY = self:FormatDualParagraph(offsetY, objectiveText, translatedObjectiveText);
+        else
+            offsetY = self:FormatParagraph(offsetY, objectiveText);
+        end
 
         local groupNum = GetSuggestedGroupSize();
         if groupNum and groupNum > 0 then
@@ -1494,7 +1535,7 @@ function DUIDialogBaseMixin:HandleQuestDetail(playFadeIn)
     if API.IsQuestAutoAccepted() or API.IsPlayerOnQuest(self.questID) then
         AcceptButton:SetButtonAlreadyOnQuest();
         ExitButton:SetButtonCloseAutoAcceptQuest();
-        KeyboardControl:SetKeyButton("PRIMARY", ExitButton);
+        KeyboardControl:SetAction("Confirm", ExitButton);
         self.acknowledgeAutoAcceptQuest = true;
     else
         AcceptButton:SetButtonAcceptQuest();
@@ -1564,11 +1605,7 @@ function DUIDialogBaseMixin:HandleQuestProgress(playFadeIn)
     local offsetY = self:UpdateQuestTitle("Progress");
 
     --Progress
-    local text = ConcatenateNPCName(GetQuestText("Progress"));
-    if text then
-        offsetY = offsetY + PARAGRAPH_SPACING;
-        offsetY = self:FormatParagraph(offsetY, text);
-    end
+    offsetY = self:FormatQuestText(offsetY, "Progress");
 
     --Required Items
     local numRequiredItems = GetNumQuestItems();
@@ -1641,7 +1678,7 @@ function DUIDialogBaseMixin:HandleQuestProgress(playFadeIn)
     self.questIsFromGossip = nil;
 
     if not canComplete then
-        KeyboardControl:SetKeyButton("PRIMARY", CancelButton);
+        KeyboardControl:SetAction("Confirm", CancelButton);
     end
 
     self:SetScrollRange(offsetY);
@@ -1657,6 +1694,32 @@ function DUIDialogBaseMixin:IsRewardChosen()
     local numRewardChoices = GetNumQuestChoices() or 0;
     local choiceID = self.rewardChoiceID;
     return numRewardChoices <= 1 or (choiceID ~= nil);
+end
+
+function DUIDialogBaseMixin:FormatQuestText(offsetY, method)
+    local text = ConcatenateNPCName(GetQuestText(method));
+    local translatedObjectiveText;
+    if text then
+        local processed = false;
+
+        if API.GetQuestTextExternal then
+            local title, text1, text2 = API.GetQuestTextExternal(self.questID, method);
+            if title and text1 then
+                offsetY = self:InsertParagraph(offsetY, title, "DUIFont_Quest_MultiLanguage");
+
+                offsetY = offsetY + PARAGRAPH_SPACING;
+                offsetY = self:FormatDualParagraph(offsetY, text, text1);
+                translatedObjectiveText = text2;
+                processed = true;
+            end
+        end
+
+        if not processed then
+            offsetY = offsetY + PARAGRAPH_SPACING;
+            offsetY = self:FormatParagraph(offsetY, text);
+        end
+    end
+    return offsetY, translatedObjectiveText
 end
 
 function DUIDialogBaseMixin:HandleQuestComplete(playFadeIn)
@@ -1696,11 +1759,7 @@ function DUIDialogBaseMixin:HandleQuestComplete(playFadeIn)
     local offsetY = self:UpdateQuestTitle("Complete");
 
     --Progress
-    local text = ConcatenateNPCName(GetQuestText("Complete"));
-    if text then
-        offsetY = offsetY + PARAGRAPH_SPACING;
-        offsetY = self:FormatParagraph(offsetY, text);
-    end
+    offsetY = self:FormatQuestText(offsetY, "Complete");
 
     if rewardList and #rewardList > 0 then
         self:RegisterEvent("QUEST_ITEM_UPDATE");
@@ -1811,7 +1870,7 @@ function DUIDialogBaseMixin:HandleQuestGreeting()
     for i, questInfo in ipairs(quests) do
         hotkeyIndex = hotkeyIndex + 1;
         button = self:AcquireOptionButton();
-        hotkey = KeyboardControl:SetKeyButton(hotkeyIndex, button);
+        hotkey = KeyboardControl:SetIndexedAction(hotkeyIndex, button);
 
         if questInfo.isAvailableQuest then
             button:SetGreetingAvailableQuest(questInfo, questInfo.index, hotkey);
@@ -2122,7 +2181,7 @@ end
 
 local function AnimIntro_Unfold_OnUpdate(self, elapsed)
     self.t = self.t + elapsed;
-    local height = Esaing_OutSine(self.t, self.fromHeight, self.frameHeight, ANIM_DURATION_SCROLL_EXPAND);
+    local height = Easing_Func(self.t, self.fromHeight, self.frameHeight, ANIM_DURATION_SCROLL_EXPAND);
     local alpha = 4*self.t;
 
     if alpha > 1 then
@@ -2141,7 +2200,7 @@ end
 
 local function AnimIntro_FlyIn_OnUpdate(self, elapsed)
     self.t = self.t + elapsed;
-    local offsetX = Esaing_OutSine(self.t, self.fromOffsetX, self.frameOffsetX, ANIM_DURATION_SCROLL_EXPAND);
+    local offsetX = Easing_Func(self.t, self.fromOffsetX, self.frameOffsetX, ANIM_DURATION_SCROLL_EXPAND);
     local alpha = 4*self.t;
     local height = self.frameHeight;
 
@@ -2772,7 +2831,6 @@ do  --Clipboard
     end
 end
 
-
 do  --Quest Rewards
 
     local ITEM_BUTTON_SPACING = 8;
@@ -2899,7 +2957,6 @@ do  --Quest Rewards
     end
 end
 
-
 do
     --Clipboard
     local CopyTextButton;
@@ -2927,6 +2984,7 @@ do
                 CopyTextButton:Hide();
             end
         end
+        MainFrame:LayoutTopWidgets();
     end
     CallbackRegistry:Register("SettingChanged.ShowCopyTextButton", Settings_ShowCopyTextButton);
 
@@ -2947,7 +3005,6 @@ do
     end
     CallbackRegistry:Register("SettingChanged.CameraMovement", Settings_CameraMovement);
 end
-
 
 do  --GamePad/Controller
     function DUIDialogBaseMixin:UpdateScrollFrameBound()
@@ -3077,7 +3134,6 @@ do  --GamePad/Controller
     end
 end
 
-
 do  --TTS
     local TTSButton;
 
@@ -3169,7 +3225,7 @@ do  --Vignette
     end
 end
 
-do
+do  --Generic Settings Registry
     function DUIDialogBaseMixin:OnSettingsChanged()
         if self:IsVisible() and self.handler then
             if not self.settingsDirty then
@@ -3253,7 +3309,7 @@ do
 
         local newScale = dbValue and FrameSizeIndexScale[dbValue];
 
-        if newScale and newScale ~= FRAME_SIZE_MULTIPLIER then
+        if newScale then
             FRAME_SIZE_MULTIPLIER = newScale;
 
             if dbValue == 0 then
@@ -3294,6 +3350,7 @@ do
     CallbackRegistry:Register("SettingChanged.AutoSelectGossip", GenericOnSettingsChanged);
     CallbackRegistry:Register("SettingChanged.ShowDialogHint", GenericOnSettingsChanged);
     CallbackRegistry:Register("SettingChanged.DisableHotkeyForTeleport", GenericOnSettingsChanged);
+    CallbackRegistry:Register("CustomBindingChanged", GenericOnSettingsChanged);
 
 
     local function SettingsUI_Show()
@@ -3334,4 +3391,56 @@ do
         end
     end
     CallbackRegistry:Register("PostInputDeviceChanged", PostInputDeviceChanged);
+
+
+    CallbackRegistry:Register("SettingChanged.DisableUIMotion", function(dbValue)
+        if dbValue then
+            Easing_Func = addon.EasingFunctions.none;
+        else
+            Easing_Func = addon.EasingFunctions.outSine;
+        end
+    end);
+end
+
+do  --Translator Button
+    function DUIDialogBaseMixin:ShowTranslatorButton(state)
+        if state then
+            if not self.TranslatorButton then
+                self.TranslatorButton = addon.CreateTranslatorButton(MainFrame);
+            end
+            self.TranslatorButton:Show();
+            self.translatorEnabled = true;
+        else
+            if self.TranslatorButton then
+                self.TranslatorButton:Hide();
+            end
+            self.translatorEnabled = false;
+        end
+        self:LayoutTopWidgets();
+    end
+
+    function DUIDialogBaseMixin:LayoutTopWidgets()
+        local widget1, widget2;
+
+        if self.CopyTextButton and self.CopyTextButton:IsShown() then
+            widget1 = self.CopyTextButton;
+        end
+
+        if self.TranslatorButton and self.TranslatorButton:IsShown() then
+            if widget1 then
+                widget2 = self.TranslatorButton;
+            else
+                widget1 = self.TranslatorButton;
+            end
+        end
+
+        if widget1 then
+            widget1:ClearAllPoints();
+            widget1:SetPoint("TOPRIGHT", self, "TOPRIGHT", -8, -8);
+            if widget2 then
+                widget2:ClearAllPoints();
+                widget2:SetPoint("RIGHT", widget1, "LEFT", -4, 0);
+            end
+        end
+    end
 end

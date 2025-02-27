@@ -1,20 +1,15 @@
 # Details! Damage Meter
 
-## [Details.20241204.13303.161](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.20241204.13303.161) (2024-12-04)
-[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.20241117.13191.161...Details.20241204.13303.161) 
+## [Details.20250225.13400.161](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.20250225.13400.161) (2025-02-25)
+[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.20250130.13390.161...Details.20250225.13400.161) 
 
-- Release: Framework, OpenRaid updates + changes from the last 2 weeks.  
-- Merge pull request #861 from chris102994/master  
-    fix: updating some missing and currently incorrect crowd control spells for cata classic  
-- Check if Ebon Might table exists before using it  
-- Merge pull request #868 from Gogo1951/patch-2  
-    Update Details\_Classic.toc  
-- Update Details\_Classic.toc  
-    Updated for new game client. Your add-on works great with Anniversary Edition.  
-- Fixed class\_damage.lua:307: attempt to compare nil with number  
-- Added boon of binding to shared buffs  
-- fix: add strangulate  
-- fix: add deep freeze  
-- fix: adding lock fears for cata  
-- fix: adding lock fears for cata  
-- fix: updating some missing and currently incorrect crowd control spells for cata classic  
+- Release of all changes done to support the new incoming M+ addon.  
+- Breakdown now get the displayId and subDisplayId from the breakdown window instead of the instance.  
+- Added: Details:OpenSpecificBreakdownWindow(combatObject, actorName, mainAttribute, subAttribute)  
+- Added mainAttributeOverride and subAttributeOverride parameters into Details:OpenBreakdownWindow()  
+        local instance = Details:GetWindow(1)  
+        local actor = Details:GetActor(0, 1, "Actorname") --got the damage actor  
+        Details:OpenBreakdownWindow(instance, actor, false, false, false, false, false, 2, 1) --show healing  
+- Removed the new m+ score board, it'll be in a plugin.  
+- When inside a 'party' instance type, it'll record .mrating and .role (m+ rating and the player role) into the damage actor.  
+- Added another breakdown at the end of m+. Currently under development. Added classCombat:GetInterruptCastAmount(actorName) and classCombat:GetCCCastAmount(actorName)  

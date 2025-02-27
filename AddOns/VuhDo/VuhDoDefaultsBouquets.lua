@@ -702,6 +702,18 @@ VUHDO_DEFAULT_SPELL_TRACE_BOUQUET = {
 };
 
 
+VUHDO_DEFAULT_SPELL_TRACE_INCOMING_BOUQUET = {
+	[VUHDO_I18N_DEF_SPELL_TRACE_INCOMING] = {
+		{
+			["name"] = "SPELL_TRACE_INCOMING",
+			["mine"] = true, ["icon"] = 1,
+			["color"] = VUHDO_makeFullColorForBouquet(1, 1, 1, 1,   1, 1, 1, 1),
+			["custom"] = { [1] = 3, ["radio"] = 2, ["bright"] = 1 },
+		},
+	},
+};
+
+
 VUHDO_DEFAULT_TRAIL_OF_LIGHT_BOUQUET = {
 	[VUHDO_I18N_DEF_TRAIL_OF_LIGHT] = {
 		{
@@ -959,6 +971,42 @@ VUHDO_DEFAULT_EVOKER_ALL_ECHO_BOUQUET = {
 	[VUHDO_I18N_BOUQUET_EVOKER_ALL_ECHO] = {
 	},
 };
+
+
+
+--
+VUHDO_DEFAULT_CHI_HARMONY_ICON_MINE_BOUQUET = {
+	[VUHDO_I18N_DEF_BOUQUET_CHI_HARMONY_ICON_MINE] = {
+		{
+			["name"] = "CHI_HARMONY_ICON_MINE",
+			["mine"] = true, ["icon"] = 1,
+			["color"] = VUHDO_makeFullColorForBouquet(1, 1, 1, 1,   1, 1, 1, 1),
+			["custom"] = { [1] = 3, ["radio"] = 2, ["bright"] = 1 },
+		},
+	},
+}
+
+VUHDO_DEFAULT_CHI_HARMONY_ICON_OTHERS_BOUQUET = {
+	[VUHDO_I18N_DEF_BOUQUET_CHI_HARMONY_ICON_OTHERS] = {
+		{
+			["name"] = "CHI_HARMONY_ICON_OTHERS",
+			["mine"] = true, ["icon"] = 1,
+			["color"] = VUHDO_makeFullColorForBouquet(1, 1, 1, 1,   1, 1, 1, 1),
+			["custom"] = { [1] = 3, ["radio"] = 2, ["bright"] = 1 },
+		},
+	},
+}
+
+VUHDO_DEFAULT_CHI_HARMONY_ICON_BOTH_BOUQUET = {
+	[VUHDO_I18N_DEF_BOUQUET_CHI_HARMONY_ICON_BOTH] = {
+		{
+			["name"] = "CHI_HARMONY_ICON_BOTH",
+			["mine"] = true, ["icon"] = 1,
+			["color"] = VUHDO_makeFullColorForBouquet(1, 1, 1, 1,   1, 1, 1, 1),
+			["custom"] = { [1] = 3, ["radio"] = 2, ["bright"] = 1 },
+		},
+	},
+}
 
 
 
@@ -1483,7 +1531,7 @@ local tTankCdsExtended = {
 	194679, --Rune Tap
 	48707, --Anti-Magic Shell
 	50461, --Anti-Magic Zone
-	49222, --Bone Shield
+	195181, --Bone Shield
 	49039, --Lichborne
 	81164, --Will of the Necropolis
 
@@ -1511,7 +1559,8 @@ local tTankCdsExtended = {
 
 	115203, --Fortifying Brew
 	122278, --Dampen Harm
-	115176  --Zen meditation
+	115176, --Zen meditation
+	215479  --Shuffle
 };
 
 
@@ -1538,7 +1587,7 @@ local tRaidCds = {
 	3411, --Intervene
 	114028, --Mass Spell Reflect
 	118038, --Die by the Sword
-	55694, --Enraged Regeneration
+	184364, --Enraged Regeneration
 
 	-- Druid
 	102558, --Incarnation: Guardian of Ursoc
@@ -1557,7 +1606,7 @@ local tRaidCds = {
 	194679, --Rune Tap
 	48707, --Anti-Magic Shell
 	50461, --Anti-Magic Zone
-	49222, --Bone Shield
+	195181, --Bone Shield
 	49039, --Lichborne
 	81164, --Will of the Necropolis
 
@@ -1573,6 +1622,7 @@ local tRaidCds = {
 	33206, --Pain Suppression
 	62618, --Power Word: Barrier
 	19236, --Desperate Prayer
+	586, --Fade
 
 	-- Shaman
 	98008, --Spirit Link Totem
@@ -1580,6 +1630,7 @@ local tRaidCds = {
 	108280, --Healing Tide Totem
 	118337, --Harden Skin
 	108271, --Astral Shift
+	114893, --Stone Bulwark
 
 	-- Rogue
 	5277, --Evasion
@@ -1594,6 +1645,9 @@ local tRaidCds = {
 	45438, --Ice Block
 	86949, --Cauterize
 	110959, --Greater Invisibility
+	342246, --Alter Time
+	414658, --Ice Cold
+	55342, --Mirror Image
 
 	-- Hunter
 	186265, --Aspect of the Turtle
@@ -1613,7 +1667,13 @@ local tRaidCds = {
 	203720, --Demon Spikes
 	198589, --Blur
 	196555, --Netherwalk
-	196718 --Darkness
+	196718, --Darkness
+
+	-- Evoker
+	370960, --Emerald Communion
+	374348, --Renewing Blaze
+	363916  --Obsidian Scales
+
 };
 
 
@@ -1622,6 +1682,7 @@ local tPvPFlags = {
 	23335, -- Alliance Flag
 	34976, -- Netherstorm Flag
 	127163, -- Power Orb
+	121164, -- Orb of Power
 };
 
 
@@ -1862,6 +1923,29 @@ function VUHDO_loadDefaultBouquets()
 	end
 	VUHDO_DEFAULT_TRAIL_OF_LIGHT_NEXT_BOUQUET = nil;
 
+	if VUHDO_BOUQUETS["VERSION"] < 33 then
+		VUHDO_BOUQUETS["VERSION"] = 33;
+		VUHDO_addDefaultBouquet(VUHDO_DEFAULT_SPELL_TRACE_INCOMING_BOUQUET);
+	end
+	VUHDO_DEFAULT_SPELL_TRACE_INCOMING_BOUQUET = nil;
+
+	if VUHDO_BOUQUETS["VERSION"] < 34 then
+		VUHDO_BOUQUETS["VERSION"] = 34;
+		VUHDO_addDefaultBouquet(VUHDO_DEFAULT_CHI_HARMONY_ICON_MINE_BOUQUET);
+	end
+	VUHDO_DEFAULT_CHI_HARMONY_ICON_MINE_BOUQUET = nil;
+
+	if VUHDO_BOUQUETS["VERSION"] < 35 then
+		VUHDO_BOUQUETS["VERSION"] = 35;
+		VUHDO_addDefaultBouquet(VUHDO_DEFAULT_CHI_HARMONY_ICON_OTHERS_BOUQUET);
+	end
+	VUHDO_DEFAULT_CHI_HARMONY_ICON_OTHERS_BOUQUET = nil;
+
+	if VUHDO_BOUQUETS["VERSION"] < 36 then
+		VUHDO_BOUQUETS["VERSION"] = 36;
+		VUHDO_addDefaultBouquet(VUHDO_DEFAULT_CHI_HARMONY_ICON_BOTH_BOUQUET);
+	end
+	VUHDO_DEFAULT_CHI_HARMONY_ICON_BOTH_BOUQUET = nil;
 
 	VUHDO_buildGenericHealthBarBouquet();
 	VUHDO_buildGenericTargetHealthBouquet();

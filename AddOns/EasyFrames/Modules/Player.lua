@@ -26,8 +26,9 @@ local db
 
 local UpdateHealthValues = EasyFrames.Utils.UpdateHealthValues
 local UpdateManaValues = EasyFrames.Utils.UpdateManaValues
-local ClassPortraits = EasyFrames.Utils.ClassPortraits
-local DefaultPortraits = EasyFrames.Utils.DefaultPortraits
+local ClassPortraitsOldSyle = EasyFrames.Utils.ClassPortraitsOldSyle;
+local ClassPortraitsNewStyle = EasyFrames.Utils.ClassPortraitsNewStyle;
+local DefaultPortraits = EasyFrames.Utils.DefaultPortraits;
 local isNeedsUpdateFrame = false;
 
 local OnShowHookScript = function(frame)
@@ -182,11 +183,9 @@ function Player:PlayerFrame_ToPlayerArt()
 
     -- Update other stuff
     local playerFrameTargetContextual = PlayerFrame_GetPlayerFrameContentContextual();
-    playerFrameTargetContextual.GroupIndicator:SetPoint("TOPLEFT", 13, 0);
-
-    PlayerFrameGroupIndicatorLeft:SetAlpha(0);
-    PlayerFrameGroupIndicatorRight:SetAlpha(0);
-    PlayerFrameGroupIndicatorMiddle:SetAlpha(0);
+    playerFrameTargetContextual.GroupIndicator:SetPoint("BOTTOMRIGHT", PlayerFrame, "TOPLEFT", 95, -15);
+    playerFrameTargetContextual.GroupIndicator.GroupIndicatorLeft:SetAlpha(0);
+    playerFrameTargetContextual.GroupIndicator.GroupIndicatorRight:SetAlpha(0);
 
     playerFrameTargetContextual.RoleIcon:SetPoint("TOPLEFT", 28, -63);
 
@@ -206,10 +205,6 @@ function Player:PlayerFrame_ToVehicleArt()
 
     PlayerFrame.PlayerFrameContainer.FrameFlash:SetTexCoord(0, 0, 0, 1, 1, 0, 1, 1); -- Default state.
     PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.StatusTexture:SetTexCoord(0, 0, 0, 1, 1, 0, 1, 1); -- Default state.
-
-    PlayerFrameGroupIndicatorLeft:SetAlpha(0.3);
-    PlayerFrameGroupIndicatorRight:SetAlpha(0.3);
-    PlayerFrameGroupIndicatorMiddle:SetAlpha(0.3);
 end
 
 function Player:PlayerFrame_UpdatePlayerNameTextAnchor()
@@ -309,16 +304,18 @@ end
 
 function Player:MakeClassPortraits(frame)
     if (frame.unit == "vehicle") then
-        DefaultPortraits(frame)
+        DefaultPortraits(frame);
 
         return
     end
 
     if (frame.unit == "player" and frame.portrait) then
         if (db.player.portrait == "2") then
-            ClassPortraits(frame)
+            ClassPortraitsOldSyle(frame);
+        elseif (db.player.portrait == "3") then
+            ClassPortraitsNewStyle(frame, true);
         else
-            DefaultPortraits(frame)
+            DefaultPortraits(frame);
         end
     end
 end

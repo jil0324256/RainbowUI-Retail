@@ -1,6 +1,7 @@
-# inputinput_Libraries_zh
+# inputinput
 
-## [v1.0.14-release](https://github.com/CvCn/InputInput/tree/v1.0.14-release) (2024-12-14)
-[Full Changelog](https://github.com/CvCn/InputInput/compare/v1.0.13-release...v1.0.14-release) [Previous Releases](https://github.com/CvCn/InputInput/releases)
+## [v1.1.0-release-04](https://github.com/CvCn/InputInput/tree/v1.1.0-release-04) (2025-02-27)
+[Full Changelog](https://github.com/CvCn/InputInput/compare/v1.1.0-release-03...v1.1.0-release-04) [Previous Releases](https://github.com/CvCn/InputInput/releases)
 
-- 新增正式服编辑模式支持  
+- 更新到11.1，新增对俄语的支持 Дополнительная поддержка русского языка  
+    更新分组标签  

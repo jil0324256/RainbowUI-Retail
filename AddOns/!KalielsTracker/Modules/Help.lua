@@ -267,11 +267,10 @@ local function SetupTutorials()
 			imageY = 1,
 			imageAbsolute = true,
 			text = "          |T"..helpPath.."help_whats-new_title:32:181:0:0:256:32:0:181:0:32|t\n\n"..
-					cTitle.."版本 7.7.0|r\n"..
-					"- 新增 - 支援魔獸世界 11.0.7.58162\n"..
-					"- 變更 - 任務物品按鈕 – 重製當前任務物品按鈕\n"..
-					"- 變更 - 任務物品按鈕 – 玩家在該任務區域時會發光\n"..
-					"- 修正 - 清單物品高度的錯誤 (遊戲 bug)\n"..
+					cTitle.."版本 7.9.0|r\n"..
+					"- 變更 - 支援插件 - Auctionator 11.0.20\n"..
+					"- 變更 - 支援插件 - TomTom 4.0.7\n"..
+					"- 變更 - 支援插件 - PetTracker 11.0.9\n"..
 					"\n"..
 
 					cTitle.."回報問題|r\n"..

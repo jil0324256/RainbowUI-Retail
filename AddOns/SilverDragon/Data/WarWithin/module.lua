@@ -1,4 +1,3 @@
-if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then return end -- classic misses expansion variables
 if LE_EXPANSION_LEVEL_CURRENT < (LE_EXPANSION_WAR_WITHIN or math.huge) then return end
 
 local core = LibStub("AceAddon-3.0"):GetAddon("SilverDragon")
@@ -52,6 +51,8 @@ ns.AZJKAHET = 2255
 ns.AZJKAHETLOWER = 2256
 ns.CITYOFTHREADS = 2213
 ns.CITYOFTHREADSLOWER = 2216
+ns.SIRENISLE = 2369
+ns.FORGOTTENVAULT = 2375
 
 ns.WORLDQUESTS = ns.conditions.QuestComplete(79573)
 -- ns.MAXLEVEL = {ns.conditions.QuestComplete(67030), ns.conditions.Level(70)}
@@ -550,6 +551,13 @@ core:RegisterTreasureData("地心之戰", {
 			223899, -- Shadowed Appendage
 		}, true),
 		notes="In a nook beneath the platform",
+	},
+
+	-- Siren Isle
+	[6683] = {
+		name="Bilge Rat Supply Chest",
+		quest=84529, -- 84873
+		notes="Get the {item:228621:Bilge Rat Supply Key} from {npc:228582:First Mate Shellshock}",
 	},
 }, true)
 
@@ -2155,3 +2163,278 @@ ns.RegisterPoints(ns.AZJKAHET, {
 		active=ns.conditions.Item(219007), -- Elusive Creature Lure
 	},
 }, {levels=true,})
+
+local TEMPEST = ns.conditions.AuraActive(458069) -- Seafury Tempest
+local CALM = ns.conditions.AuraInactive(458069) -- Seafury Tempest
+
+ns.RegisterPoints(ns.SIRENISLE, {
+	-- Always
+	[35791339] = {
+		label="Grimgull",
+		criteria=70797,
+		quest=84796,
+		npc=228155,
+		loot={
+			229040, -- Earthen Landlubber's Helm
+		},
+		vignette=6529,
+	},
+	[53323381] = {
+		label="Ghostmaker",
+		criteria=70796,
+		quest=84801,
+		npc=228601,
+		loot={
+			231118, -- Runecaster's Stormbound Rune
+		},
+		vignette=6531,
+	},
+	[67222763] = {
+		label="Snacker",
+		criteria=70799,
+		quest=86933,
+		npc=231090,
+		vignette=6607,
+	},
+	[46847808] = {
+		label="Wreckwater",
+		criteria=70800,
+		quest=84794,
+		npc=228151,
+		vignette=6526,
+	},
+	[31757154] = {
+		label="Bloodbrine",
+		criteria=70794,
+		quest=84795, -- 84875
+		npc=228154,
+		vignette=6530,
+	},
+	-- Project quests
+	[37105499] = {
+		label="Stalagnarok",
+		criteria=70793,
+		quest=85437,
+		npc=229992,
+		loot={
+			229037, -- Earthen Landlubber's Breastplate
+			229051, -- Scurvy Sailor's Ring
+			231118, -- Runecaster's Stormbound Rune
+		},
+		vignette=6610,
+		path=44195630,
+	},
+	[26236548] = {
+		label="Nerathor",
+		criteria=70791,
+		quest=85938, -- also 85760 (drowned lair); second time 84845 + 85762 (drowned lair)
+		npc=229982,
+		loot={
+			231118, -- Runecaster's Stormbound Rune
+		},
+		vignette=6754,
+		path=32456476,
+	},
+	[55206840] = {
+		label="Gravesludge (The Drain)",
+		criteria=70792,
+		quest=85937, -- 84753 the drain
+		npc=228201,
+		loot={
+			229052, -- Moneyed Mariner's Pendant
+			231118, -- Runecaster's Stormbound Rune
+		},
+		vignette=6517,
+		path=62607519,
+	},
+	-- Storm
+	[32327408] = {
+		label="Ikir the Flotsurge",
+		criteria=70805,
+		quest=84792, -- 84847
+		npc=227545,
+		loot={
+			231117, -- Darktide Wavebender's Orb
+			231118, -- Runecaster's Stormbound Rune
+		},
+		vignette=6525,
+	},
+	-- Vrykul phase
+	[63938735] = {
+		label="Asbjorn the Bloodsoaked",
+		criteria=70806,
+		quest=84805, -- 84839 first time?
+		npc=230137,
+		loot={
+			234972, -- Bloodwake Missive
+		},
+		vignette=6590,
+	},
+	-- Naga phase
+	[61708967] = {
+		label="Coralweaver Calliso",
+		criteria=70801,
+		quest=84802,
+		npc=229852,
+		vignette=6581,
+	},
+	[55808381] = {
+		label="Siris the Sea Scorpion",
+		criteria=70802,
+		quest=84803,
+		npc=229853,
+		vignette=6582,
+	},
+	-- Pirate phase
+	[66128506] = {
+		label="Chef Chum Platter",
+		criteria=70803,
+		quest=84800,
+		npc=228583,
+		loot={
+			{166358, pet=true}, -- Proper Parrot
+		},
+		vignette=6580,
+	},
+	[60568904] = {
+		label="Plank-Master Bluebelly",
+		criteria=70804,
+		quest=84799,
+		npc=228580,
+		loot={
+			{166358, pet=true}, -- Proper Parrot
+		},
+		vignette=6577,
+	},
+}, {
+	achievement=41046, -- Clean Up On Isle Siren
+	requires=CALM,
+})
+
+ns.RegisterPoints(ns.SIRENISLE, {
+	[33017365] = {
+		label="Zek'ul the Shipbreaker",
+		quest=84840, -- 85405
+		npc=231357, -- also 236083
+		loot={
+			232569, -- Cyclonic Runekey
+			234328, -- Torrential Fragment
+		},
+		vignette=6617,
+		requires=TEMPEST,
+	},
+	[42416488] = {
+		label="Tempest Talon",
+		quest=85403,
+		npc=231353,
+		vignette=6615,
+		loot={
+			234328, -- Torrential Fragment
+		},
+		requires=TEMPEST,
+	},
+	[32818762] = {
+		label="Slaughtershell",
+		additional={55375857, 35781966, 42297258},
+		quest=84798,
+		npc=228547,
+		loot={
+			234328, -- Torrential Fragment
+		},
+		vignette=6524,
+		requires=TEMPEST,
+	},
+	[55988410] = {
+		label="Brinebough",
+		quest=85404,
+		npc=231356,
+		vignette=6616,
+		loot={
+			234328, -- Torrential Fragment
+		},
+		requires=TEMPEST,
+	},
+	--[[
+	[0] = {
+		label="Gritstorm",
+		quest=nil,
+		npc=228150,
+		vignette=6528,
+	},
+	[0] = {
+		label="Nickel Back",
+		quest=85407,
+		npc=231366,
+		vignette=6618,
+	},
+	[0] = {
+		label="Restless Odek",
+		quest=nil,
+		npc=229970,
+		vignette=6591,
+	},
+	[0] = {
+		label="Restless Rex",
+		quest=nil,
+		npc=228202,
+	},
+	[0] = {
+		label="Stormtouched Restless Death",
+		quest=nil,
+		npc=231369,
+	},
+	[0] = {
+		label="[DNT] Test NPC",
+		quest=nil,
+		npc=230673,
+	},
+	--]]
+})
+
+ns.RegisterPoints(ns.FORGOTTENVAULT, {
+	[28342486] = {
+		label="Shardsong",
+		criteria=70795,
+		quest=86779,
+		npc=227550,
+		loot={
+			{235017,toy=true,}, -- Glittering Vault Shard
+		},
+		vignette=6666,
+	},
+	[64805460] = {
+		label="Gunnlod the Sea-Drinker",
+		criteria=70798,
+		quest=84797,
+		npc=228159,
+		loot={
+			229019, -- Earthen Deckhand's Cape
+			229023, -- Earthen Deckhand's Breeches
+			229034, -- Earthen Islander's Cinch
+			229051, -- Scurvy Sailor's Ring
+			229167, -- Earthen Deckhand's Cleaver
+			229174, -- Earthen Landlubber's Shield
+			229180, -- Earthen Landlubber's Hammer
+			231116, -- Cursed Pirate Skull
+			231118, -- Runecaster's Stormbound Rune
+			{235017,toy=true,}, -- Glittering Vault Shard
+		},
+		vignette=6527,
+	},
+}, {
+	achievement=41046, -- Clean Up On Isle Siren
+	requires=CALM,
+})
+ns.RegisterPoints(ns.FORGOTTENVAULT, {
+	[37987637] = {
+		label="Ksvir the Forgotten",
+		quest=85406,
+		npc=231368,
+		loot={
+			232571, -- Whirling Runekey
+			{235017,toy=true,}, -- Glittering Vault Shard
+		},
+		vignette=6619,
+		requires=TEMPEST,
+	},
+})

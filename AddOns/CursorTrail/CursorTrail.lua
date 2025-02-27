@@ -133,9 +133,10 @@ kScreenBottomFourthMult = 1.077
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
 kNewFeatures =  -- For flagging new features in the UI.
 {
-    -- Added in release 11.0.2.8 ...
-    {anchor="RIGHT", relativeTo="MasterScaleLabel", relativeAnchor="LEFT", x=-2, y=1},
-    {anchor="BOTTOM", relativeTo="Tabs.3", relativeAnchor="TOP", x=0, y=-11},
+--~ Disabled this notification in 11.0.7.3 ...
+--~     -- Added in release 11.0.2.8 ...
+--~     {anchor="RIGHT", relativeTo="MasterScaleLabel", relativeAnchor="LEFT", x=-2, y=1},
+--~     {anchor="BOTTOM", relativeTo="Tabs.3", relativeAnchor="TOP", x=0, y=-11},
 
 --~ Disabled this notification in 11.0.2.6 ...
 --~     -- Added in release 11.0.2.4 ...
@@ -429,7 +430,7 @@ function getScreenScaledSize()
     local midX = w / 2
     local midY = h / 2
     local hypotenuse = (w^2 + h^2) ^ 0.5
-    if gHypotenuseCorrectionMult then hypotenuse = hypotenuse * gHypotenuseCorrectionMult end  -- (TODO:Remove)
+    if gHypotenuseCorrectionMult then hypotenuse = hypotenuse * gHypotenuseCorrectionMult end  -- (TODO:Remove?)
     return w, h, midX, midY, uiScale, hypotenuse
 end
 
@@ -454,6 +455,7 @@ function printUsageMsg()
     printMsg(kAddonFolderName.." "..kAddonVersion.." 指令:")
     printMsg("(注意: 輸入 "..BLUE.."/ct|r".." or "..BLUE.."/"..kAddonFolderName.."|r 都可以使用這些指令。)")
     printMsg(BLUE.."  /ct"..GREEN2.." - 顯示/隱藏選項視窗。")
+    printMsg(BLUE.."  /ct combat"..GREEN2.." - 開/關 '只在戰鬥中顯示' 設定。 (所有圖層組合都和第一個啟用的圖層相同。)")
     printMsg(BLUE.."  /ct help"..GREEN2.." - 顯示這段說明內容。")
     printMsg(BLUE.."  /ct off"..GREEN2.." - 暫時停用滑鼠特效以改善遊戲效能。"
         .."  (下次重新載入介面，或是輸入 "..BLUE.."/ct on"..GREEN2.." 來重新啟用。))")
@@ -544,8 +546,21 @@ Globals.SlashCmdList[kAddonFolderName] = function(params)
 --~         ----gCommand = kRefreshForced
 --~         CursorTrail_Refresh(true)
     -- - - - - - - - - - - - - - - - - - - - - - - - - - -
-    elseif cmd == "combat"
-        or cmd == "mouselook"
+    elseif cmd == "combat" then
+        bOptionsModified = true
+
+        local layerNum = findFirstEnabledLayer(PlayerConfig) or 1
+        local layerCfg = PlayerConfig.Layers[layerNum]
+        local bShowOnlyInCombat = not layerCfg.UserShowOnlyInCombat
+        for i = 1, kMaxLayers do
+            layerCfg = PlayerConfig.Layers[i]
+            layerCfg.UserShowOnlyInCombat = bShowOnlyInCombat
+        end
+
+        printMsg(kAddonFolderName..GREEN2.." 'Show only in combat' |r= "
+            ..ORANGE..(bShowOnlyInCombat and "ON" or "OFF"))
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - -
+    elseif cmd == "mouselook"
         or cmd == "fade"
         or cmd == "sparkle"
       then
@@ -685,7 +700,7 @@ Globals.SlashCmdList[kAddonFolderName] = function(params)
                 .. "Backups: ".. round(backupsSize, numDecPts) .."k" )
         syslag.freeEveryAddonsMemory()
     -- - - - - - - - - - - - - - - - - - - - - - - - - - -
-    elseif cmd == "throttle" then  -- For diagnosing large frame rate drops on certain computers.  (TODO:Remove)
+    elseif cmd == "throttle" then  -- For diagnosing large frame rate drops on certain computers.  (TODO:Remove?)
         if cmdParam == nil or cmdParam == "" then
             local ms = round((EventFrame.throttleLevelSecs or 0) * 1000, 0)  -- Convert to milliseconds.
             printMsg( kAddonHeading.."Current throttle level:", ms, "milliseconds" )
@@ -695,7 +710,7 @@ Globals.SlashCmdList[kAddonFolderName] = function(params)
             printMsg( kAddonHeading.."Throttle level set to", ms, "milliseconds." )
         end
     -- - - - - - - - - - - - - - - - - - - - - - - - - - -
-    elseif cmd == "uw" then  -- For diagnosing model position problems on ultrawide monitors.  (TODO:Remove)
+    elseif cmd == "uw" then  -- For diagnosing model position problems on ultrawide monitors.  (TODO:Remove?)
         if gHypotenuseCorrectionMult then
             gHypotenuseCorrectionMult = nil
             printMsg( kAddonHeading.."Ultrawide monitor correction turned OFF." )
@@ -814,6 +829,7 @@ EventFrame.throttleSum = 0
 EventFrame.dtMax = 0  -- milliseconds  (For benchmarking.)
 EventFrame.dtSum = 0
 EventFrame.dtCnt = 0
+EventFrame.errCnt = 0  -- Tracks fatal errors and prevents OnUpdate() from spamming them.
 
 -------------------------------------------------------------------------------
 EventFrame:SetScript("OnEvent", function(self, event, ...)
@@ -959,16 +975,17 @@ end
 
 -------------------------------------------------------------------------------
 EventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-function       EventFrame:PLAYER_REGEN_DISABLED()  -- Combat started.
+function       EventFrame:PLAYER_REGEN_DISABLED()  -- Combat started.  "PLAYER_ENTER_COMBAT"
     ----dbg("PLAYER_REGEN_DISABLED")
     gCommand = kRefresh
 end
 
 -------------------------------------------------------------------------------
 EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-function       EventFrame:PLAYER_REGEN_ENABLED()  -- Combat ended.
+function       EventFrame:PLAYER_REGEN_ENABLED()  -- Combat ended.  "PLAYER_LEAVE_COMBAT"
     ----dbg("PLAYER_REGEN_ENABLED")
     gCommand = kRefresh
+    self.errCnt = 0  -- Periodically reset this.  (Only want it to trigger if errors are being spammed.)
 
     ---->>> 20240918 REMOVED this check after several people complained about major FPS loss when leaving combat.
     ----
@@ -1038,13 +1055,25 @@ end
 
 -------------------------------------------------------------------------------
 function CursorTrail_OnUpdate(self, elapsedSeconds)
-    if not gLayers[1] then return end
+    self.errCnt = self.errCnt + 1  -- Assume this for now.  (Undone at bottom if call is successful.)
+    if self.errCnt > 10 then
+        CursorTrail_OFF(true)
+        print(kAddonErrorHeading, 'Too many errors are occurring! ', kAddonTitle,
+                'has been disabled.  Type "/reload" to enable it again.',
+                ' If errors continue to happen, type "/ct reset", and then "/reload" again.')
+        CursorTrail_Hide()
+        Globals.PlaySound(private.kSound.Failure)
+        return
+    end
+
+    if not (OptionsFrame and gLayers[1]) then return end
+
     ----DebugText("Secs: "..round(elapsedSeconds,3), 80)
-    ----DebugText("Shadow1% "..round(Globals.CursorTrail_PlayerConfig.Layers[1].UserShadowAlpha,2), 100)
+    ----DebugText("Shadow% "..round(Globals.CursorTrail_PlayerConfig.Layers[1].UserShadowAlpha,2), 100)
     ----DebugText("Fade: "..(Globals.CursorTrail_Config.Profiles.Test.FadeOut and "true" or "false"), 80)
     ----local t0 = debugprofilestop()  -- Returns a high-precision timestamp, in milliseconds.  i.e. GetTickCount()
 
-    local bOptionsShown = (OptionsFrame and OptionsFrame:IsShown())
+    local bOptionsShown = OptionsFrame:IsShown()
     local isGameCursorHidden = self:isGameCursorHidden()
 
     if gCommand == kRefreshForced then
@@ -1079,10 +1108,14 @@ function CursorTrail_OnUpdate(self, elapsedSeconds)
             ----DebugText("gMotionIntensity fo: "..gMotionIntensity, 270)
         end
     end
+    ----DebugText("gMotionIntensity: "..gMotionIntensity)
 
     if self.throttleLevelSecs then
         self.throttleSum = self.throttleSum + elapsedSeconds
-        if self.throttleSum < self.throttleLevelSecs then return end
+        if self.throttleSum < self.throttleLevelSecs then
+            self.errCnt = self.errCnt - 1  -- Don't treat this case as an error.
+            return
+        end
         elapsedSeconds = self.throttleSum
         self.throttleSum = 0
     end
@@ -1104,7 +1137,7 @@ function CursorTrail_OnUpdate(self, elapsedSeconds)
             -- Hide cursor FX during mouselook, if appropriate.
             --_________________________________________________
             if isGameCursorHidden and layerCfg.UserShowMouseLook and layerCfg.FadeOut then
-                gMotionIntensity = 1.0  -- Force show during mouselook.
+                gMotionIntensity = 1.0  -- Force show during mouselook if fading is set.
             end
 
             --_________________________________________________
@@ -1141,16 +1174,11 @@ function CursorTrail_OnUpdate(self, elapsedSeconds)
                 -- Is mouse over options window or color picker?
                 if bOptionsShown then
                     local mouseFocus = GetMouseFocus()
-                    if not mouseFocus then
-                        -- Probably tried getting focus while a dropdown was closing.  Abort, and try again after a short delay.
-                        C_Timer.After(0.1, function() gCommand = kRefreshForced end)
-                        return
-                    end
 
+                    -- Keep FX along top side of options window while mouse is over it (so user can see changes better).
                     if doesAncestryInclude(OptionsFrame, mouseFocus)
                        or (ColorPickerFrame:IsShown() and doesAncestryInclude(ColorPickerFrame, mouseFocus))
                       then
-                        -- Keep FX along top side of options window while mouse is over it (so user can see changes better).
                         local ofs = gLayers:getLargestShapeSize() * 0.5
                         cursorY = (OptionsFrame.HeaderTexture:GetTop() + ofs - 2) * ScreenScale
                         --------ofs = ofs - (math.sin(cursorY*0.04) - 1) * 50  -- Wobble left/right as mouse moves up/down.
@@ -1164,6 +1192,7 @@ function CursorTrail_OnUpdate(self, elapsedSeconds)
                 tY = ((cursorY - ScreenMidY) / ScreenScale)
                 gAnchorFrame:SetPoint("CENTER", tX, tY)
 
+                --.................................................................................
                 -- Update test model position (if it exists).
                 if TestModel and TestModel:GetModelFileID() then
                     if TestModel.UseSetTransform then
@@ -1184,6 +1213,7 @@ function CursorTrail_OnUpdate(self, elapsedSeconds)
                         TestModel:SetPosition(TestModel.OfsZ, modelX, modelY) -- Probably won't follow mouse without custom step sizes.
                     end
                 end
+                --.................................................................................
 
                 -- Update position of cursor model.
                 if cursorModel.Constants.UseSetTransform then
@@ -1248,6 +1278,8 @@ function CursorTrail_OnUpdate(self, elapsedSeconds)
             end
         end  -- if IsLayerEnabled
     end  -- for
+
+    self.errCnt = self.errCnt - 1  -- Success!  Undo the error count increment.
 
     ------ Benchmarking.
     ----local dt = debugprofilestop() - t0  -- i.e. GetTickCount()
@@ -1348,6 +1380,7 @@ end
 
 -------------------------------------------------------------------------------
 function CursorTrail_ON(bPrintMsg)
+    EventFrame.errCnt = 0
     if isCursorTrailOff() then  -- Prevents chaining multiple calls to our handler.
         ----print(kAddonFolderName..": Setting EventFrame's OnUpdate script.")
         EventFrame:SetScript("OnUpdate", CursorTrail_OnUpdate)
@@ -1356,9 +1389,11 @@ function CursorTrail_ON(bPrintMsg)
 end
 
 -------------------------------------------------------------------------------
-function CursorTrail_OFF()
-    if not OptionsFrame_HideUI(1) then return end
+function CursorTrail_OFF(bPrintMsg)
+    ----if not OptionsFrame_HideUI(1) then return end
+    OptionsFrame_HideUI(1)
     EventFrame:SetScript("OnUpdate", nil)
+    if bPrintMsg then printMsg(kAddonFolderName..": "..ORANGE.."OFF") end
 end
 
 -------------------------------------------------------------------------------
@@ -1386,6 +1421,17 @@ function initConfig(config)  -- Sets all layers to default values.
 end
 
 -------------------------------------------------------------------------------
+function initConfigNils(config)
+    -- The following config fields can be nil (kNoChange).  If they are, then set their values now.
+    for layerNum = 1, kMaxLayers do
+        local layerCfg = config.Layers[layerNum]
+        layerCfg.FadeOut = layerCfg.FadeOut or false
+        layerCfg.UserShowOnlyInCombat = layerCfg.UserShowOnlyInCombat or false
+        layerCfg.UserShowMouseLook = layerCfg.UserShowMouseLook or false
+    end
+end
+
+-------------------------------------------------------------------------------
 function findFirstEnabledLayer(config)  -- Returns layer number of first enabled layer, or nil.
 -- Note: This function is not part of gLayers because it operates on config passed into it, not
 --       on the config data stored in gLayers.
@@ -1402,6 +1448,7 @@ end
 function PlayerConfig_SetDefaults()
     initConfig( Globals.CursorTrail_PlayerConfig )
     PlayerConfig = Globals.CursorTrail_PlayerConfig
+    initConfigNils(PlayerConfig)
 end
 
 -------------------------------------------------------------------------------
@@ -1421,12 +1468,7 @@ end
 -------------------------------------------------------------------------------
 function PlayerConfig_Validate()
     validateConfig(PlayerConfig)
-    for i = 1, kMaxLayers do
-        local layerCfg = PlayerConfig.Layers[i]
-        layerCfg.FadeOut = layerCfg.FadeOut or false
-        layerCfg.UserShowOnlyInCombat = layerCfg.UserShowOnlyInCombat or false
-        layerCfg.UserShowMouseLook = layerCfg.UserShowMouseLook or false
-    end
+    initConfigNils(PlayerConfig)
 end
 
 -------------------------------------------------------------------------------
@@ -1447,74 +1489,96 @@ end
 -------------------------------------------------------------------------------
 function convertObsoleteConfig(config) -- Converts old data structures into the format expected by this version of the addon.
     assert(not config.Profiles) -- Fails if CursorTrail_Config is passed in instead of CursorTrail_PlayerConfig (or a copy of player config).
-    local isConfigEmpty = isEmpty(config)
+    if isEmpty(config) then return end
+
+    local lastConfigVersion = config.ConfigVersion
 
     --_________________________________________________________________________
     -- Clear obsolete variables that were removed some time before version 10.
     --_________________________________________________________________________
-    if not isConfigEmpty then
-        if config.BaseScale then
-            -- These vars were moved into CursorModel.Constants .
-            config.BaseScale = nil
-            config.BaseOfsX = nil
-            config.BaseOfsY = nil
-            config.BaseStepX = nil
-            config.BaseStepY = nil
-        end
-        config.Version = nil  -- Obsolete version variable.  See config.ConfigVersion .
+    if config.BaseScale then
+        -- These vars were moved into CursorModel.Constants .
+        config.BaseScale = nil
+        config.BaseOfsX = nil
+        config.BaseOfsY = nil
+        config.BaseStepX = nil
+        config.BaseStepY = nil
     end
+    config.Version = nil  -- Obsolete version variable.  Use config.ConfigVersion .
 
     --_________________________________________________________________________
     -- 2024-08-30: Convert CursorTrail version 11.0.2.3 data to version 11.0.2.4.
     --  Added multiple layers in 11.0.2.4.
     --_________________________________________________________________________
-    if not isConfigEmpty then
-        if not config.Layers then
-            -- Backup before making any changes so users can still use older addon versions if necessary.
-            ----backupObsoleteData("11.0.2.3")  <<< REMOVED IN 11.0.2.7.
+    if not config.Layers then
+        -- Backup before making any changes so users can still use older addon versions if necessary.
+        ----backupObsoleteData("11.0.2.3")  <<< REMOVED IN 11.0.2.7.
 
-            -- Create multiple layers of config data and move previous config values into layer 1.
-            local obsoleteVars = CopyTable(config)
-            initConfig(config)  -- Initializes all layers to default values.
+        -- Create multiple layers of config data and move previous config values into layer 1.
+        local obsoleteVars = CopyTable(config)
+        initConfig(config)  -- Initializes all layers to default values.
 
-            -- Move obsolete values to layer 1.
-            local firstLayer = config.Layers[1]
-            for k, v in pairs(obsoleteVars) do
-                firstLayer[k] = v
-                config[k] = nil  -- Clear obsolete variable.
-            end
+        -- Move obsolete values to layer 1.
+        local firstLayer = config.Layers[1]
+        for k, v in pairs(obsoleteVars) do
+            firstLayer[k] = v
+            config[k] = nil  -- Clear obsolete variable.
         end
-        if not config.Layers[kMaxLayers] then
-            local layers = config.Layers
-            if not layers[1] then
-                initConfig(config)  -- Initializes all layers to default values.
-            else
-                -- Add more layers to config.
-                for i = 2, kMaxLayers do
-                    if not layers[i] then
-                        layers[i] = CopyTable(kDefaultConfigLayer)
-                        layers[i].IsLayerEnabled = false
-                    end
+    end
+    if not config.Layers[kMaxLayers] then
+        local layers = config.Layers
+        if not layers[1] then
+            initConfig(config)  -- Initializes all layers to default values.
+        else
+            -- Add more layers to config.
+            for i = 2, kMaxLayers do
+                if not layers[i] then
+                    layers[i] = CopyTable(kDefaultConfigLayer)
+                    layers[i].IsLayerEnabled = false
                 end
             end
         end
-        if config.Layers[kMaxLayers+1] then
-            -- Happens if kMaxLayers was temporarily increased.  Must force config to have the same max layers again.
-            local i = kMaxLayers + 1
-            while config.Layers[i] do
-                config.Layers[i] = nil
-                i = i + 1
-            end
-        end
-        config.SelectedLayerNum = nil  -- (Removed in 11.0.2.4a.)
     end
+    if config.Layers[kMaxLayers+1] then
+        -- Happens if kMaxLayers was temporarily increased.  Must force config to have the same max layers again.
+        local i = kMaxLayers + 1
+        while config.Layers[i] do
+            config.Layers[i] = nil
+            i = i + 1
+        end
+    end
+    config.SelectedLayerNum = nil  -- (Removed in 11.0.2.4a.)
 
     --_________________________________________________________________________
     -- 2024-10-07: Convert CursorTrail version 11.0.2.6 data to version 11.0.2.7.
-    -- Added a version number to config.  No other changes were made.
+    -- Added config.ConfigVersion and set it to 2.  No other changes were made.
     --_________________________________________________________________________
     if not config.ConfigVersion then
         config.ConfigVersion = 2
+    end
+
+--~     --_________________________________________________________________________
+--~     -- <DATE>: Convert CursorTrail version <oldVer#> data to version <newVer#>.
+--~     -- Set ConfigVersion = <#>.
+--~     --_________________________________________________________________________
+--~     -- Backup before making these changes so older addon versions can be used if necessary.
+--~     if config.ConfigVersion < 3 then
+--~         backupObsoleteData( <newVer#> )
+--~         config.ConfigVersion = 3
+
+--~         for i = 1, kMaxLayers do
+--~             local layerCfg = config.Layers[i]
+--~             .....
+--~         end
+--~     end
+
+    --_________________________________________________________________________
+    -- Warn about incompatible data formats if user tries using an older version of
+    -- the addon that expects an older data format.
+    --_________________________________________________________________________
+    if lastConfigVersion and lastConfigVersion > config.ConfigVersion then
+        printMsg(kAddonErrorHeading, "This version will not work correctly with the newer settings found on your computer."
+            .."\nDownload the latest version of ".. kAddonTitle ..", or restore an old backup of its profiles.")
     end
 end
 
@@ -1556,7 +1620,8 @@ function validateConfig(config)
         layerCfg.UserRotY = layerCfg.UserRotY or 0
         layerCfg.UserRotZ = layerCfg.UserRotZ or 0
 
-        -- Note: The following values can be legally nil when loading a default.
+        -- Note: The following values can be legally nil when loading a default.  Nil means
+        --       keep the current UI value.  See UI_SetValues() in CursorTrailConfig.lua.
         ----layerCfg.FadeOut = layerCfg.FadeOut or false
         ----layerCfg.UserShowOnlyInCombat = layerCfg.UserShowOnlyInCombat or false
         ----layerCfg.UserShowMouseLook = layerCfg.UserShowMouseLook or false
@@ -1641,7 +1706,7 @@ function CursorTrail_Refresh(bForcePositionUpdate)  -- Show cursor FX for all la
     local bOptionsShown = OptionsFrame:IsShown()
     local bInCombat = UnitAffectingCombat("player")
     if bForcePositionUpdate then
-        gPreviousX = nil  -- Forces cursor FX *position* to refresh immediately when CursorTrail_Refresh() is called.
+        gPreviousX = nil  -- Forces cursor FX *position* to refresh immediately.
     end
 
     for layerNum = 1, kMaxLayers do
@@ -1651,10 +1716,10 @@ function CursorTrail_Refresh(bForcePositionUpdate)  -- Show cursor FX for all la
 
         if not layerCfg.IsLayerEnabled then
             bShowFX = false
+        elseif isGameCursorHidden and not layerCfg.UserShowMouseLook then
+            bShowFX = false
         elseif not bOptionsShown then
-            if isGameCursorHidden and not layerCfg.UserShowMouseLook then
-                bShowFX = false
-            elseif layerCfg.UserShowOnlyInCombat and not bInCombat then
+            if layerCfg.UserShowOnlyInCombat and not bInCombat then
                 bShowFX = false
             end
         end
@@ -1827,6 +1892,14 @@ function createLayer(playerConfigLayer)
     layer.setShadowAlpha = function(self, alpha)  -- layer:setShadowAlpha()
         self.playerConfigLayer.UserShadowAlpha = alpha
         self.ShadowFrame:SetAlpha( alpha )
+    end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    layer.setShapeAlpha = function(self, alpha)  -- layer:setShapeAlpha()
+        self.ShapeFrame:SetAlpha( alpha )
+    end
+    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
+    layer.setModelAlpha = function(self, alpha)  -- layer:setModelAlpha()
+        self.CursorModel.base:SetAlpha( alpha )
     end
     -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
     layer.setCombat = function(self, bShowOnlyInCombat)  -- layer:setCombat()

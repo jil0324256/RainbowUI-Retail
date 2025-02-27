@@ -9,21 +9,26 @@ local function ConvertTags(tags)
   return res
 end
 
-local function SkinContainerFrame(frame, topButtons, topRightButtons)
+local function AddHeader(frame, texture)
   (frame.GwStripTextures or frame.StripTextures)(frame)
-  GW.CreateFrameHeaderWithBody(frame, frame:GetTitleText(), "Interface/AddOns/GW2_UI/textures/bag/bagicon", {})
+  GW.CreateFrameHeaderWithBody(frame, frame:GetTitleText(), texture, {})
   frame.gwHeader:ClearAllPoints()
   frame.gwHeader:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 0, -25)
   frame.gwHeader:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -25)
-  frame.gwHeader.windowIcon:ClearAllPoints()
-  frame.gwHeader.windowIcon:SetPoint("CENTER", frame, "TOPLEFT", -16, 0)
-  frame.gwHeader.windowIcon:SetSize(84, 84)
   ;(frame.CloseButton.GwSkinButton or frame.CloseButton.SkinButton)(frame.CloseButton, true)
   frame.CloseButton:SetPoint("TOPRIGHT", -10, 4)
   frame.CloseButton:SetSize(20, 20)
+end
+
+local function SkinContainerFrame(frame, topButtons, topRightButtons)
+  AddHeader(frame, "Interface/AddOns/GW2_UI/textures/bag/bagicon")
 
   frame:GetTitleText():ClearAllPoints()
   frame:GetTitleText():SetPoint("BOTTOMLEFT", frame.gwHeader, "BOTTOMLEFT", 35, 10)
+
+  frame.gwHeader.windowIcon:ClearAllPoints()
+  frame.gwHeader.windowIcon:SetPoint("CENTER", frame, "TOPLEFT", -16, 0)
+  frame.gwHeader.windowIcon:SetSize(84, 84)
 
   frame.footer = frame:CreateTexture(nil, "BACKGROUND", nil, 7)
   frame.footer:SetTexture("Interface/AddOns/GW2_UI/textures/bag/bagfooter")
@@ -104,8 +109,8 @@ local function SkinContainerFrame(frame, topButtons, topRightButtons)
     SetupRightButtons()
   end)
 
-  if frame.UpdateTransferButton then
-    hooksecurefunc(frame, "UpdateTransferButton", SetupRightButtons)
+  if frame.ButtonVisibility then
+    hooksecurefunc(frame.ButtonVisibility, "Update", SetupRightButtons)
   end
 
   frame.backgroundMask = UIParent:CreateMaskTexture()
@@ -148,6 +153,9 @@ local function SetupIconButton(button, texture)
   button.Icon:SetTexCoord(0,1,0,1)
 end
 
+local hidden = CreateFrame("Frame")
+hidden:Hide()
+
 local skinners = {
   ItemButton = function(frame, tags)
     frame.bgrGW2SkinHooked = true
@@ -163,6 +171,12 @@ local skinners = {
     -- Ensure item icon and border is set GW2 style
     if frame.SetItemButtonQuality then
       hooksecurefunc(frame, "SetItemButtonQuality", GW.SetBagItemButtonQualitySkin)
+    end
+    if addonTable.Constants.IsEra then
+      local questTexture = frame.IconQuestTexture or frame:GetName() and _G[frame:GetName() .. "IconQuestTexture"]
+      if questTexture then
+        questTexture:SetParent(hidden)
+      end
     end
     -- Show white border if none is shown, like default GW2
     if Baganator.Constants.IsClassic and frame.SetItemDetails then
@@ -216,6 +230,14 @@ local skinners = {
       frame.LogsFrame:SetFrameStrata("DIALOG")
       frame.TabTextFrame:SetFrameStrata("DIALOG")
       SkinContainerFrame(frame, {frame.ToggleTabTextButton, frame.ToggleTabLogsButton, frame.ToggleGoldLogsButton}, frame.AllFixedButtons)
+    elseif tags.customise then
+      AddHeader(frame, "Interface/AddOns/GW2_UI/textures/character/settings-window-icon")
+      frame.Tabs[1]:SetPoint("TOPLEFT", 65, -25)
+      frame:HookScript("OnShow", function(self)
+        local tabsWidth = self.Tabs[#self.Tabs]:GetRight() - self.Tabs[1]:GetLeft()
+
+        self:SetWidth(math.max(self:GetWidth(), tabsWidth + 90))
+      end)
     else
       GW.HandlePortraitFrame(frame, true)
     end
@@ -237,34 +259,42 @@ local skinners = {
     GW.SkinTextBox(frame.Middle, frame.Left, frame.Right)
   end,
   TabButton = function(frame)
-    (frame.GwStripTextures or frame.StripTextures)(frame)
-    ;(frame.GwSkinButton or frame.SkinButton)(frame, false, true, false, false, false, false)
-    if Baganator.Constants.IsRetail then
-      -- Work around GW2 bug on retail where the hover texture doesn't hide
-      -- properly
-      frame:HookScript("OnDisable", function()
-        frame.hover:SetAlpha(0)
-      end)
-      frame:HookScript("OnShow", function()
-        frame.hover:SetAlpha(0)
-      end)
-      frame:HookScript("OnEnable", function()
-        frame.hover:SetAlpha(0)
-      end)
+    if GW.HandleTabs then
+      GW.HandleTabs(frame, false)
+    else
+      (frame.GwStripTextures or frame.StripTextures)(frame)
+      ;(frame.GwSkinButton or frame.SkinButton)(frame, false, true, false, false, false, false)
+      if Baganator.Constants.IsRetail then
+        -- Work around GW2 bug on retail where the hover texture doesn't hide
+        -- properly
+        frame:HookScript("OnDisable", function()
+          frame.hover:SetAlpha(0)
+        end)
+        frame:HookScript("OnShow", function()
+          frame.hover:SetAlpha(0)
+        end)
+        frame:HookScript("OnEnable", function()
+          frame.hover:SetAlpha(0)
+        end)
+      end
     end
   end,
   TopTabButton = function(frame)
-    (frame.GwStripTextures or frame.StripTextures)(frame)
-    ;(frame.GwSkinButton or frame.SkinButton)(frame, false, true, false, false, false, false)
-    if Baganator.Constants.IsRetail then
-      -- Work around GW2 bug on retail where the hover texture doesn't hide
-      -- properly
-      frame:HookScript("OnDisable", function()
-        frame.hover:SetAlpha(0)
-      end)
-      frame:HookScript("OnEnable", function()
-        frame.hover:SetAlpha(0)
-      end)
+    if GW.HandleTabs then
+      GW.HandleTabs(frame, true)
+    else
+      (frame.GwStripTextures or frame.StripTextures)(frame)
+      ;(frame.GwSkinButton or frame.SkinButton)(frame, false, true, false, false, false, false)
+      if Baganator.Constants.IsRetail then
+        -- Work around GW2 bug on retail where the hover texture doesn't hide
+        -- properly
+        frame:HookScript("OnDisable", function()
+          frame.hover:SetAlpha(0)
+        end)
+        frame:HookScript("OnEnable", function()
+          frame.hover:SetAlpha(0)
+        end)
+      end
     end
   end,
   SideTabButton = function(frame)
@@ -319,8 +349,11 @@ local skinners = {
     end
   end,
   Dropdown = function(button)
-    button:GwHandleDropDownBox()
-    button:OnEnter()
+    button:GwHandleDropDownBox(nil, nil, nil)
+    button:OnEnter() -- Fix text colour
+    button.Text:SetPoint("LEFT", 10, -2)
+    button.backdrop:SetPoint("TOPLEFT", -5, 0)
+    button:SetHitRectInsets(-5, 0, 0, 0)
   end,
 }
 

@@ -1,7 +1,7 @@
 # Baganator
 
-## [555](https://github.com/Baganator/Baganator/tree/555) (2024-12-18)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/554...555) 
+## [653](https://github.com/Baganator/Baganator/tree/653) (2025-02-25)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/652...653) 
 
-- Update LICENSE  
-- Code cleanup  
+- [Fixes #432] Workaround to prevent Masque bug breaking bag view  
+- [Fixes #430] Update item level widget after entering/leaving timewalking raid  

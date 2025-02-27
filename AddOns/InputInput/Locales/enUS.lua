@@ -87,11 +87,12 @@ L['Do you want to reload the addOnes'] = 'Do you want to reload the addOnes'
 L['Yes'] = 'Yes'
 L['No'] = 'No'
 L['Chinese word processing module can make input prompts more intelligent'] = 'Chinese word processing module can make input prompts more intelligent'
-
+L['Show multi tip'] = 'Show multi tip'
+L['Disable Login Information'] = 'Disable Login Information'
 
 -- Login Information
 L['Login Information 1'] = "You are using the %s Input Enhancement addon. If you encounter any issues during use, you can provide feedback via %s or on the addon website %s"
-L['Login Information 2'] = "Enter %s or %s to open the settings panel"
+L['Login Information 2'] = "Enter %s or %s to open the %ssettings panel%s"
 
 L['Not enabled, enter/ii to enable'] = 'Not enabled, enter%s to enable'
 
@@ -100,12 +101,17 @@ L['New Version Discovered'] = '%s Discovered a new version %s'
 L['READ ME'] = '- move (Shift+left button), zoom (Shift+right arrow), reset (Shift+right button), The retail can enter editing mode for editing\
 - Tab to switch channel\
 - Historical records（↑ ↓）\
-- automatic supplementation（Control+Enter）\
+- automatic addition（Control+numbers）\
 - undo（Control+Z）redo（Control+Shift+Z）'
 
 L['scale'] = 'scale'
 
 L['InputBox'] = 'ChatInputBox'
+
+L['TiktokLive'] = 'Tiktok live(only China)'
+
+L['nextNoTip'] = "No more prompts next time"
+L['UpdateTip'] = "The automatic addition shortcut key（|cffF56C6CControl+Enter|r）is |cffF56C6Cno longer in use|r and has been replaced by（|cff409EFFControl+number1|r），This is because the shortcut key conflicts with the \"/\" command. Although this is an unfriendly modification, in order not to conflict with Blizzard's default UI, please understand!"
 
 -- 自行加入
 L['Input Input'] = ""

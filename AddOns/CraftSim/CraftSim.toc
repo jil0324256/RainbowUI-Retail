@@ -1,9 +1,9 @@
-## Interface: 110005, 110007
+## Interface: 110007, 110100
 
 ## Title: CraftSim
 ## Notes: Calculates the average profit based on your profession stats and other tools for the war within gold making
 ## Author: genju
-## Version: 19.7.2
+## Version: 19.8.3
 ## X-Curse-Project-ID: 705015
 ## X-Wago-ID: 0mNwaPKo
 ## X-WoWI-ID: 26519
@@ -15,7 +15,7 @@
 
 ## Title-zhTW: |cffFFFF99[專業]|r 製造模擬器
 ## Notes-zhTW: CraftSim |n|n幫忙計算使用最低成本的材料製造出最高品質的物品。|n|n|cffffd200使用方法: |r打開專業製造視窗時會自動顯示，從Esc>選項>插件>專業-模擬器，進行設定。
-## X-Category-zhTW: 交易
+## Category-zhTW: 專業
 ## DefaultState: disabled
 
 embeds.xml

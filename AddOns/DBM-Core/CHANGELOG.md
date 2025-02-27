@@ -1,13 +1,27 @@
 # DBM - Core
 
-## [11.0.38](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.0.38) (2024-12-14)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.0.37...11.0.38) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.1.4](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.1.4) (2025-02-08)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.1.3...11.1.4) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- bump core version  
-- Update localization.fr.lua (#1436)  
-- Update localization.br.lua (#1437)  
-- Update localization.es.lua (#1435)  
-- Timers: Fix timers with a negative offset, commonly used at combat start (#1438)  
-- work around annoying core bug where starting a timer of 0 uses self.timer instead. But that annoying bug has to stay since over a decade worth of mods has assumed that to be valid  
-- auto set "keep" on variance timers in debugmode  
+- Prep new tag  
+- Core: Align SoD Naxx difficulties with warcraftlogs (#1526)  
+- Fix year in timestamp (#1530)  
+- Update localization.br.lua  
+- Update localization.br.lua  
+- Update localization.br.lua  
+- Update localization.br.lua  
+- Update localization.es.lua  
+- Update localization.es.lua  
+- Update localization.fr.lua  
+- Update localization.fr.lua  
+- Update localization.fr.lua  
+- Variance: remove obsolete code  
+    This has no place being in Start method. Bar attributes on creation are to be managed in DBT:CreateBar  
+- Variance: fix var to non-var getting kept on debug  
+    Fix related to this https://github.com/DeadlyBossMods/DeadlyBossMods/blob/master/DBM-Core/modules/objects/Timer.lua#L225-L227  
+- Variance: code cleanup (#1525)  
+- Tests: Get player names from PLAYER\_INFO as well and explicitly filter to CLEU events for other sources  
+- Tests: Get server name from CHAT\_MSG\_RAID\_BOSS\_WHISPER\_SYNC (which always has it)  
+- Tests: Set GUID for raid warning messages coming from yourself correctly  
+- play voice pack count sound when changing voice pack in dropdown menu  
 - bump alpha  

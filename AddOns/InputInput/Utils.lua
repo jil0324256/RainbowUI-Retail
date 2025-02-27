@@ -20,9 +20,9 @@ local C_Timer_After = API.C_Timer_After
 -- @param format 格式字符串，默认为"%y/%m/%d %H:%M:%S"
 -- @param notMilli 是否不显示毫秒数，默认为false
 -- @return 格式化后的时间戳字符串
-local function GetFormattedTimestamp(currentTime, milliseconds, foramt, notMilli)
+local function GetFormattedTimestamp(currentTime, milliseconds, format, notMilli)
     -- 根据提供的格式字符串或默认格式，格式化时间戳
-    local formattedTime = date(foramt or "%y/%m/%d %H:%M:%S", currentTime)
+    local formattedTime = date(format or "%y/%m/%d %H:%M:%S", currentTime)
     -- 如果不需要毫秒数，则不进行任何操作
     if not notMilli then
         -- 将毫秒数添加到时间戳上
@@ -445,7 +445,6 @@ function U:FindMaxValue(tables, msg)
     return word
 end
 
-
 -- 设置或获取单位的颜色
 ---@param unitName string 单位名称
 ---@param color string|nil 单位颜色，如果未提供，则尝试根据单位名称从缓存中获取
@@ -517,6 +516,17 @@ end
 local function isAllWhitespace(str)
     -- 使用 Lua 的模式匹配，^%s*$ 表示字符串从头到尾都必须是空白字符
     return str:match("^%s*$") ~= nil
+end
+
+function U:InsertNoRepeat(t, e)
+    if not t then return {} end
+    for i, v in ipairs(t) do
+        if v == e then
+            return t
+        end
+    end
+    table.insert(t, e)
+    return t
 end
 
 -- 引入结巴分词库
@@ -605,8 +615,8 @@ function U:InitFriends()
                         realm = strtrim(realmName)
                     end
                 end
-                U:AddOrMoveToEnd(friendName,
-                    U:join('-', gameAccountInfo.characterName, realm))
+                -- U:AddOrMoveToEnd(friendName,
+                --     U:join('-', gameAccountInfo.characterName, realm))
                 U:AddOrMoveToEnd(friendName, gameAccountInfo.characterName)
                 U:AddOrMoveToEnd(friendName, realm)
             end
@@ -733,18 +743,19 @@ end
 ---@param inp string 当前输入，用于过滤并提供玩家名称建议
 ---@return string|nil 返回建议
 function U:PlayerTip(inpall, inp)
+    LOG:Debug(inp)
     -- 检查输入集合是否为空或未定义，如果是则返回
     if inpall == nil or #inpall <= 0 then return end
     -- 检查当前输入是否为空或未定义，如果是则返回
     if inp == nil or #inp <= 0 then return end
 
-    -- 遍历好友列表，寻找匹配的玩家名称建议
+    -- 遍历好友列表
     for i = #friendName, 1, -1 do
         local v = friendName[i]
         -- 在好友名称中查找输入字符串，如果找到且不是完整匹配，则处理
         local start, _end = strfind(v, inp, 1, true)
-        if start and start > 0 and _end ~= #v then
-            -- 从匹配位置之后截取字符串，作为玩家名称建议
+        if start and start == 1 and _end ~= #v then
+            -- 从匹配位置之后截取字符串
             local p = strsub(v, _end + 1)
             if p and #p > 0 then
                 LOG:Debug('好友')
@@ -753,13 +764,13 @@ function U:PlayerTip(inpall, inp)
         end
     end
 
-    -- 遍历公会列表(在线），寻找匹配的玩家名称建议
+    -- 遍历公会列表(在线）
     for i = #guildNameOnLine, 1, -1 do
         local v = guildNameOnLine[i]
         -- 在公会名称中查找输入字符串，如果找到且不是完整匹配，则处理
         local start, _end = strfind(v, inp, 1, true)
-        if start and start > 0 and _end ~= #v then
-            -- 从匹配位置之后截取字符串，作为玩家名称建议
+        if start and start == 1 and _end ~= #v then
+            -- 从匹配位置之后截取字符串
             local p = strsub(v, _end + 1)
             if p and #p > 0 then
                 LOG:Debug('公会(在线）', v)
@@ -768,13 +779,13 @@ function U:PlayerTip(inpall, inp)
         end
     end
 
-    -- 遍历公会列表，寻找匹配的玩家名称建议
+    -- 遍历公会列表
     for i = #guildName, 1, -1 do
         local v = guildName[i]
         -- 在公会名称中查找输入字符串，如果找到且不是完整匹配，则处理
         local start, _end = strfind(v, inp, 1, true)
-        if start and start > 0 and _end ~= #v then
-            -- 从匹配位置之后截取字符串，作为玩家名称建议
+        if start and start == 1 and _end ~= #v then
+            -- 从匹配位置之后截取字符串
             local p = strsub(v, _end + 1)
             if p and #p > 0 then
                 LOG:Debug('公会', v)
@@ -783,13 +794,13 @@ function U:PlayerTip(inpall, inp)
         end
     end
 
-    -- 遍历组队成员列表，寻找匹配的玩家名称建议
+    -- 遍历组队成员列表
     for i = #groupMembers, 1, -1 do
         local v = groupMembers[i]
         -- 在组队成员名称中查找输入字符串，如果找到且不是完整匹配，则处理
         local start, _end = strfind(v, inp, 1, true)
-        if start and start > 0 and _end ~= #v then
-            -- 从匹配位置之后截取字符串，作为玩家名称建议
+        if start and start == 1 and _end ~= #v then
+            -- 从匹配位置之后截取字符串
             local p = strsub(v, _end + 1)
             if p and #p > 0 then
                 LOG:Debug('组队')
@@ -798,13 +809,13 @@ function U:PlayerTip(inpall, inp)
         end
     end
 
-    -- 遍历区域列表，寻找匹配的玩家名称建议
+    -- 遍历区域列表
     for i = #zoneName, 1, -1 do
         local v = zoneName[i]
         -- 在区域名称中查找输入字符串，如果找到且不是完整匹配，则处理
         local start, _end = strfind(v, inp, 1, true)
         if start and start > 0 and _end ~= #v then
-            -- 从匹配位置之后截取字符串，作为玩家名称建议
+            -- 从匹配位置之后截取字符串
             local p = strsub(v, _end + 1)
             if p and #p > 0 then
                 LOG:Debug('区域')
@@ -812,6 +823,7 @@ function U:PlayerTip(inpall, inp)
             end
         end
     end
+
 end
 
 -- INPUTINPUT_V
@@ -848,6 +860,13 @@ do
 
         return true
     end
+end
+
+function U:OpenLink(linkData)
+    ChatFrame1EditBox:Show() -- 强制显示
+    ChatFrame1EditBox:SetFocus() -- 保持焦点
+    ChatFrame1EditBox:SetText(linkData)
+    ChatFrame1EditBox:HighlightText()
 end
 
 -- 定义一个静态提示框，用于在用户需要重新加载UI时提供确认提示

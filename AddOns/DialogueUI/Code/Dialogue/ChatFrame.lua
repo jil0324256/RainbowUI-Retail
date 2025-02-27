@@ -1,9 +1,11 @@
 local _, addon = ...
-
+local GetDBBool = addon.GetDBBool;
 local UpdateTextureSliceScale = addon.API.UpdateTextureSliceScale;
 
 local tinsert = table.insert;
 local format = string.format;
+local gsub = string.gsub;
+local find = string.find;
 local ipairs = ipairs;
 local time = time;
 
@@ -438,6 +440,8 @@ do
             object:SetAlpha(0);
             object.alpha = 0;
         end
+        self.fadingDirection = -1;
+        self:SetScript("OnUpdate", nil);
     end
 
     function MessageFader:IsFading()
@@ -453,22 +457,25 @@ do
     end
 end
 
-
 function ChatFrame:AddMessage(text, name, event)
     local type = EventIndex[event];
     local prefix = ChatEventData[event].prefix;
 
     if event == "CHAT_MSG_MONSTER_EMOTE" then
-        text = text:format(name);
+        if find(text, "%%s") then
+            text = text:format(name);
+        else
+            text = gsub(text, "%%", "");
+        end
     end
 
     if prefix then
         text = format(prefix, name) .. text;
     end
-
+    --print(text);
     ScrollViewDataProvider:AddContent(
         {text, type, GetRelativeTime()}
-    )
+    );
 end
 
 
@@ -608,25 +615,31 @@ function ChatFrame:ListenEvents(state)
 end
 
 function ChatFrame:SetEnabled(enabled)
+    self.isEnabled = enabled;
     self:ListenEvents(enabled);
     self:SetShown(enabled);
 end
 
-do
-    --ChatFrame is always visible when interacting with NPC while HideUI = true
-    --[[
-    local function UIParent_OnShow()
-        ChatFrame:Hide();
+
+do  --Hide ChatFrame when UIParent is visible
+    function ChatFrame:UpdateVisibility(uiParentShown)
+        if self.isEnabled then
+            if uiParentShown == nil then
+                --uiParentShown = UIParent:IsShown();
+                uiParentShown = false;
+            end
+            if uiParentShown then
+                self:Hide();
+            else
+                self:Show();
+                MessageFader:FadeOutMessagesInstantly();
+            end
+        end
     end
 
-    addon.CallbackRegistry:Register("UIParent.Show", UIParent_OnShow);
-
-    local function UIParent_OnHide()
-        ChatFrame:Show();
-    end
-
-    addon.CallbackRegistry:Register("UIParent.Hide", UIParent_OnHide);
-    --]]
+    addon.CallbackRegistry:Register("UIParent.Show", ChatFrame.UpdateVisibility, ChatFrame);
+    --addon.CallbackRegistry:Register("UIParent.Hide", ChatFrame.UpdateVisibility, ChatFrame);
+    addon.CallbackRegistry:Register("DialogueUI.Show", ChatFrame.UpdateVisibility, ChatFrame);
 end
 
 
@@ -662,10 +675,11 @@ end
 
 do
     local function Settings_HideUI(dbValue)
-        ChatFrame:SetEnabled(dbValue == true);
+        local state = GetDBBool("HideUI") and GetDBBool("ShowChatWindow");
+        ChatFrame:SetEnabled(state);
     end
-
     addon.CallbackRegistry:Register("SettingChanged.HideUI", Settings_HideUI);
+    addon.CallbackRegistry:Register("SettingChanged.ShowChatWindow", Settings_HideUI);
 end
 
 

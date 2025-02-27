@@ -27,6 +27,8 @@ core.data = {
     classBarHeight = 0,
     hooks = {},
     tooltip = {},
+    auras = {},
+    portraits = {isProcessing = false, queue = {}},
 };
 
 local func = core.func;
@@ -115,21 +117,22 @@ end
 ----------------------------------------
 function func:ResizeNameplates()
     local function work()
+        local CFG = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile];
         local inInstance, instanceType = IsInInstance();
 
         -- Width
-        local portrait = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Portrait and 18 or 0;
-        local level = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ShowLevel and 18 or 0;
+        local portrait = CFG.Portrait and 18 or 0;
+        local level = CFG.ShowLevel and 18 or 0;
 
         -- Height
-        local portraitY = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Portrait and 2 or 0;
-        local powerbarY = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Powerbar and 6 or 0;
-        local inverseScale = 1 - CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NameplatesScale;
+        local portraitY = CFG.Portrait and 2 or 0;
+        local powerbarY = CFG.Powerbar and 6 or 0;
+        local inverseScale = 1 - CFG.NameplatesScale;
 
         local width = 128 + portrait + level;
         local height = 16 + portraitY + powerbarY
-            + ((CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].LargeName and 14 or 10) * (CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NameplatesScale + inverseScale))
-            + (CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ShowGuildName and ((CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].LargeGuildName and 13 or 10) * (CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NameplatesScale + inverseScale)) or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatPercentage and 10 or 0);
+            + ((CFG.LargeName and 14 or 10) * (CFG.NameplatesScale + inverseScale))
+            + (CFG.ShowGuildName and ((CFG.LargeGuildName and 13 or 10) * (CFG.NameplatesScale + inverseScale)) or CFG.ThreatPercentage and 10 or 0);
 
         -- Friendly Nameplates
         if inInstance and (instanceType == "party" or instanceType == "raid") then
@@ -427,17 +430,23 @@ function func:formatTime(value)
     end
 end
 
+----------------------------------------
 -- Interract icon
+----------------------------------------
 function func:InteractIcon(nameplate)
-    if nameplate and data.isRetail then
+    if nameplate then
         local unitFrame = nameplate.unitFrame;
         local interactIcon = nameplate.UnitFrame and nameplate.UnitFrame.SoftTargetFrame and nameplate.UnitFrame.SoftTargetFrame.Icon;
-        local auras = unitFrame and unitFrame.auras and unitFrame.auras.list and unitFrame.auras.list[1];
         local resourceOnTarget = data.cvars.nameplateResourceOnTarget;
 
+        local auras = false;
+        if unitFrame and unitFrame.auras and unitFrame.auras then
+            auras = unitFrame.auras.helpful[1] or unitFrame.auras.harmful[1];
+        end
+
         if interactIcon then
+            interactIcon:SetSize(16,16);
             interactIcon:SetParent(unitFrame);
-            interactIcon:SetScale(0.5);
             interactIcon:ClearAllPoints();
 
             if auras and auras:IsShown() then
@@ -475,6 +484,7 @@ end
 -- Get unit color
 ----------------------------------------
 function func:GetUnitColor(unit, ThreatPercentageOfLead, status)
+    local CFG = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile];
     local canAttackUnit = UnitCanAttack("player", unit);
     local isPlayer = UnitIsPlayer(unit);
     local isPet = UnitIsOtherPlayersPet(unit);
@@ -503,13 +513,13 @@ function func:GetUnitColor(unit, ThreatPercentageOfLead, status)
     local function getDefault()
         if isPlayer then
             if canAttackUnit then
-                if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].HealthBarClassColorsEnemy then
+                if CFG.HealthBarClassColorsEnemy then
                     return classColor.r, classColor.g, classColor.b;
                 else
                     return r, g, b;
                 end
             else
-                if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].HealthBarClassColorsFriendly then
+                if CFG.HealthBarClassColorsFriendly then
                     return classColor.r, classColor.g, classColor.b;
                 else
                     return r, g, b;
@@ -528,14 +538,16 @@ function func:GetUnitColor(unit, ThreatPercentageOfLead, status)
         else
             if status == 2 or status == 3 then
                 if ThreatPercentageOfLead == 0 then
-                    return CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatAggroColor.r, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatAggroColor.g, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatAggroColor.b;
+                    return CFG.ThreatAggroColor.r, CFG.ThreatAggroColor.g, CFG.ThreatAggroColor.b;
+                elseif CFG.ThreatColorBasedOnPercentage then
+                    return getLighterColor(ThreatPercentageOfLead, CFG.ThreatAggroColor.r, CFG.ThreatAggroColor.g, CFG.ThreatAggroColor.b);
                 else
-                    return getLighterColor(ThreatPercentageOfLead, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatAggroColor.r, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatAggroColor.g, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatAggroColor.b);
+                    return CFG.ThreatAggroColor.r, CFG.ThreatAggroColor.g, CFG.ThreatAggroColor.b;
                 end
             elseif GetPartyAssignment("MainTank", "player", true) and func:OtherTank(unit) then
-                return CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatOtherTankColor.r, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatOtherTankColor.g, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatOtherTankColor.b;
-            elseif status == 1 or (ThreatPercentageOfLead and ThreatPercentageOfLead > CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatWarningThreshold) then
-                return CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatWarningColor.r, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatWarningColor.g, CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ThreatWarningColor.b;
+                return CFG.ThreatOtherTankColor.r, CFG.ThreatOtherTankColor.g, CFG.ThreatOtherTankColor.b;
+            elseif CFG.ThreatWarning and (status == 1 or (ThreatPercentageOfLead and ThreatPercentageOfLead > CFG.ThreatWarningThreshold)) then
+                return CFG.ThreatWarningColor.r, CFG.ThreatWarningColor.g, CFG.ThreatWarningColor.b;
             else
                 return getDefault();
             end
@@ -550,6 +562,7 @@ end
 ----------------------------------------
 function func:Update_Colors(unit)
     local color = data.colors.border;
+    local CFG = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile];
 
     local function work(unitFrame, unit)
         local r,g,b = func:GetUnitColor(unit);
@@ -567,16 +580,16 @@ function func:Update_Colors(unit)
             if isPVP or isFFA then
                 r,g,b = Rs, Gs, Bs;
             else
-                r,g,b = color.r, color.g, color.b;
+                r,g,b = CFG.BorderColor.r, CFG.BorderColor.g, CFG.BorderColor.b;
             end
         elseif not canAttack and (isPlayer or UnitIsOtherPlayersPet) then
             if isPVP or isFFA then
                 r,g,b = Rs, Gs, Bs;
             else
-                r,g,b = color.r, color.g, color.b;
+                r,g,b = CFG.BorderColor.r, CFG.BorderColor.g, CFG.BorderColor.b;
             end
         else
-            r,g,b = color.r, color.g, color.b;
+            r,g,b = CFG.BorderColor.r, CFG.BorderColor.g, CFG.BorderColor.b;
         end
 
         -- Coloring name and guild
@@ -584,10 +597,10 @@ function func:Update_Colors(unit)
             unitFrame.name:SetTextColor(0.5, 0.5, 0.5);
             unitFrame.guild:SetTextColor(0.5, 0.5, 0.5);
         else
-            if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].FriendlyClassColorNamesAndGuild and not canAttack and isPlayer then
+            if CFG.FriendlyClassColorNamesAndGuild and not canAttack and isPlayer then
                 unitFrame.name:SetTextColor(classColor.r, classColor.g, classColor.b);
                 unitFrame.guild:SetTextColor(classColor.r, classColor.g, classColor.b);
-            elseif CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].EnemyClassColorNamesAndGuild and canAttack and isPlayer then
+            elseif CFG.EnemyClassColorNamesAndGuild and canAttack and isPlayer then
                 unitFrame.name:SetTextColor(classColor.r, classColor.g, classColor.b);
                 unitFrame.guild:SetTextColor(classColor.r, classColor.g, classColor.b);
             else
@@ -612,13 +625,13 @@ function func:Update_Colors(unit)
         end
 
         -- Fade
-        if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].FadeUnselected then
+        if CFG.FadeUnselected then
             if not UnitExists("target") then
                 unitFrame:SetAlpha(1);
             elseif target then
                 unitFrame:SetAlpha(1);
             else
-                unitFrame:SetAlpha(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].FadeIntensity);
+                unitFrame:SetAlpha(CFG.FadeIntensity);
             end
         else
             unitFrame:SetAlpha(1);
@@ -721,10 +734,11 @@ end
 ----------------------------------------
 function func:Update_Health(unit)
     if unit then
+        local CFG = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile];
         local healthMax = UnitHealthMax(unit);
         local health = UnitHealth(unit);
         local healthPercent = string.format("%.0f", (health/healthMax)*100) .. "%";
-        local percentageAsMainValue = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].PercentageAsMainValue and CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue and CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage;
+        local percentageAsMainValue = CFG.PercentageAsMainValue and CFG.NumericValue and CFG.Percentage;
         local player = UnitIsPlayer(unit);
         local otherPlayersPet = UnitIsOtherPlayersPet(unit);
         local hp = func:AbbreviateNumbers(health);
@@ -733,18 +747,20 @@ function func:Update_Health(unit)
         if UnitIsUnit(unit, "player") then
             local nameplate = data.nameplate;
 
+            data.nameplate.prevHealthValue = nameplate.healthbar:GetValue();
+
             if nameplate then
                 nameplate.healthMain:SetText(
                     percentageAsMainValue and healthPercent
-                    or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue and hp
-                    or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage and healthPercent
+                    or CFG.NumericValue and hp
+                    or CFG.Percentage and healthPercent
                     or ""
                 );
 
                 nameplate.healthSecondary:SetText(percentageAsMainValue and hp or healthPercent);
 
-                nameplate.healthMain:SetShown(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage);
-                nameplate.healthSecondary:SetShown(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue and CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage);
+                nameplate.healthMain:SetShown(CFG.NumericValue or CFG.Percentage);
+                nameplate.healthSecondary:SetShown(CFG.NumericValue and CFG.Percentage);
 
                 -- Total health
                 data.nameplate.healthTotal:SetText(func:AbbreviateNumbers(healthMax));
@@ -774,16 +790,16 @@ function func:Update_Health(unit)
 
                 unitFrame.healthMain:SetText(
                     percentageAsMainValue and healthPercent
-                    or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue and hp
-                    or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage and healthPercent
+                    or CFG.NumericValue and hp
+                    or CFG.Percentage and healthPercent
                     or ""
                 );
                 unitFrame.healthSecondary:SetText(
                     percentageAsMainValue and hp or healthPercent
                 );
 
-                unitFrame.healthMain:SetShown(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue or CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage);
-                unitFrame.healthSecondary:SetShown(CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].NumericValue and CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Percentage and showSecondary);
+                unitFrame.healthMain:SetShown(CFG.NumericValue or CFG.Percentage);
+                unitFrame.healthSecondary:SetShown(CFG.NumericValue and CFG.Percentage and showSecondary);
 
                 -- Updating Health bar
                 unitFrame.healthbar:SetMinMaxValues(0, healthMax);
@@ -1246,46 +1262,87 @@ end
 -- Update portrait
 ----------------------------------------
 function func:Update_Portrait(unit)
+    local CFG = CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile];
     local isEnemy = UnitIsEnemy(unit, "player");
     local isFriend = UnitIsFriend(unit, "player");
 
-    if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].Portrait then
-        if unit then
+    if CFG.Portrait then
+        if unit and not UnitIsUnit("player", unit) then
             local nameplate = C_NamePlate.GetNamePlateForUnit(unit);
 
             if nameplate then
                 local unitFrame = nameplate.unitFrame;
 
-                local function setClassIcon()
+                local function SetClassIcon()
                     local _, class = UnitClass(unit);
 
                     if class then
                         unitFrame.portrait.texture:SetTexture("Interface\\addons\\ClassicPlatesPlus\\media\\classes\\" .. class);
+                        unitFrame.portrait.texture:Show();
                     end
                 end
 
-                if UnitIsPlayer(unit) then
-                    if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ClassIconsEnemy then
-                        if isEnemy then
-                            setClassIcon();
-                        end
-                    else
-                        if isEnemy then
-                            SetPortraitTexture(unitFrame.portrait.texture, unit);
+                -- Throttle interval (in seconds)
+                local throttleInterval = 0.0001;
+
+                local function ProcessVariable(FrameAndUnit)
+                    SetPortraitTexture(FrameAndUnit.frame, FrameAndUnit.unit);
+                    FrameAndUnit.frame:Show();
+                end
+
+                local function ProcessQueue()
+                    if data.portraits.isProcessing or #data.portraits.queue == 0 then
+                        return;
+                    end
+
+                    data.portraits.isProcessing = true;
+
+                    -- Process the next unit in the queue
+                    local FrameAndUnit = table.remove(data.portraits.queue, 1);
+                    ProcessVariable(FrameAndUnit);
+
+                    C_Timer.After(throttleInterval, function()
+                        data.portraits.isProcessing = false;
+                        ProcessQueue();
+                    end)
+                end
+
+                local function AddToQueue(frame, current_unit)
+                    local FrameAndUnit = {frame = frame, unit = current_unit}
+
+                    -- Check if unit is already in the queue
+                    local unitExists = false
+                    for _, v in ipairs(data.portraits.queue) do
+                        if v.unit == current_unit then
+                            unitExists = true
+                            break -- Exit the loop early since we found the unit
                         end
                     end
 
-                    if CFG_Account_ClassicPlatesPlus.Profiles[CFG_ClassicPlatesPlus.Profile].ClassIconsFriendly then
-                        if isFriend then
-                            setClassIcon();
+                    -- If the unit is not in the queue, add it
+                    if not unitExists then
+                        table.insert(data.portraits.queue, FrameAndUnit)
+                    end
+
+                    ProcessQueue();
+                end
+
+                if UnitIsPlayer(unit) then
+                    if isEnemy then
+                        if CFG.ClassIconsEnemy then
+                            SetClassIcon();
+                        else
+                            AddToQueue(unitFrame.portrait.texture, unit);
                         end
-                    else
-                        if isFriend then
-                            SetPortraitTexture(unitFrame.portrait.texture, unit);
+                    elseif isFriend then
+                        if CFG.ClassIconsFriendly then
+                            SetClassIcon();
+                        else
+                            AddToQueue(unitFrame.portrait.texture, unit);
                         end
                     end
                 else
-                    SetPortraitTexture(unitFrame.portrait.texture, unit);
+                    AddToQueue(unitFrame.portrait.texture, unit);
                 end
             end
         end
@@ -1341,33 +1398,41 @@ function func:NamesOnly(unit)
     local isPlayer = UnitIsPlayer(unit);
     local isPet = UnitIsOtherPlayersPet(unit);
 
-    if isTarget then
-        return false;
-    else
-        if isPlayer then
-            if canAttack then
-                return CFG.NamesOnlyEnemyPlayers;
+    local function work(config)
+        if isTarget then
+            if CFG.NamesOnlyAlwaysShowTargetsNameplate then
+                return false;
             else
-                return CFG.NamesOnlyFriendlyPlayers;
-            end
-        elseif isPet then
-            if canAttack then
-                return CFG.NamesOnlyEnemyPets;
-            else
-                return CFG.NamesOnlyFriendlyPets;
-            end
-        elseif isTotem then
-            if canAttack then
-                return CFG.NamesOnlyEnemyTotems;
-            else
-                return CFG.NamesOnlyFriendlyTotems;
+                return config;
             end
         else
-            if canAttack then
-                return CFG.NamesOnlyEnemyNPC;
-            else
-                return CFG.NamesOnlyFriendlyNPC;
-            end
+            return config;
+        end
+    end
+
+    if isPlayer then
+        if canAttack then
+            return work(CFG.NamesOnlyEnemyPlayers);
+        else
+            return work(CFG.NamesOnlyFriendlyPlayers);
+        end
+    elseif isPet then
+        if canAttack then
+            return work(CFG.NamesOnlyEnemyPets);
+        else
+            return work(CFG.NamesOnlyFriendlyPets);
+        end
+    elseif isTotem then
+        if canAttack then
+            return work(CFG.NamesOnlyEnemyTotems);
+        else
+            return work(CFG.NamesOnlyFriendlyTotems);
+        end
+    else
+        if canAttack then
+            return work(CFG.NamesOnlyEnemyNPC);
+        else
+            return work(CFG.NamesOnlyFriendlyNPC);
         end
     end
 end

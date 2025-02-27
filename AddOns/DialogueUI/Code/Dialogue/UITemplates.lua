@@ -7,9 +7,9 @@ local TooltipFrame = addon.SharedTooltip;
 local GossipDataProvider = addon.GossipDataProvider;
 local PlaySound = addon.PlaySound;
 local ThemeUtil = addon.ThemeUtil;
-local GetPrimaryControlKey = addon.KeyboardControl.GetPrimaryControlKey;
 local RewardTooltipCode = addon.RewardTooltipCode;
 local SwipeEmulator = addon.SwipeEmulator;
+local BindingUtil = addon.BindingUtil;
 
 -- User Settings
 local SHOW_QUEST_TYPE_TEXT = true;
@@ -39,7 +39,8 @@ local ANIM_DURATION_BUTTON_HOVER = 0.25;
 local ANIM_OFFSET_H_BUTTON_HOVER = 8;       --12 using GamePad
 
 local AbbreviateNumbers = API.AbbreviateNumbers;
-local Esaing_OutQuart = addon.EasingFunctions.outQuart;
+local Easing_ButtonText = addon.EasingFunctions.outQuart;
+local Easing_UpgradeArrow = addon.EasingFunctions.outSine;
 local Round = API.Round;
 local GetQuestIcon = API.GetQuestIcon;
 local IsQuestRequiredItem = API.IsQuestRequiredItem;
@@ -94,7 +95,7 @@ local function Anim_ShiftButtonCentent_OnUpdate(optionButton, elapsed)
     optionButton.t = optionButton.t + elapsed;
     local offset;
     if optionButton.t < ANIM_DURATION_BUTTON_HOVER then
-        offset = Esaing_OutQuart(optionButton.t, 0, ANIM_OFFSET_H_BUTTON_HOVER, ANIM_DURATION_BUTTON_HOVER);
+        offset = Easing_ButtonText(optionButton.t, 0, ANIM_OFFSET_H_BUTTON_HOVER, ANIM_DURATION_BUTTON_HOVER);
     else
         offset = ANIM_OFFSET_H_BUTTON_HOVER;
         optionButton:SetScript("OnUpdate", nil);
@@ -107,7 +108,7 @@ local function Anim_ResetButtonCentent_OnUpdate(optionButton, elapsed)
     optionButton.t = optionButton.t + elapsed;
     local offset;
     if optionButton.t < ANIM_DURATION_BUTTON_HOVER then
-        offset = Esaing_OutQuart(optionButton.t, optionButton.offset, 0, ANIM_DURATION_BUTTON_HOVER);
+        offset = Easing_ButtonText(optionButton.t, optionButton.offset, 0, ANIM_DURATION_BUTTON_HOVER);
     else
         offset = 0;
         optionButton:SetScript("OnUpdate", nil);
@@ -121,7 +122,7 @@ local function OnClickFunc_SelectOption(gossipButton)
     gossipButton.owner:SetSelectedGossipIndex(gossipButton.id);     --For Dialogue History: Grey out other buttons
 
     --Classic
-    if gossipButton.isTrainer or GossipDataProvider:DoesOptionOpenUI(gossipButton.gossipOptionID) then
+    if gossipButton.isSpecialIcon or GossipDataProvider:DoesOptionOpenUI(gossipButton.gossipOptionID) then
         CallbackRegistry:Trigger("PlayerInteraction.ShowUI", true);
     end
 
@@ -395,7 +396,7 @@ function DUIDialogOptionButtonMixin:SetGossip(data, hotkey)
     self:Enable();
 
     --Classic
-    self.isTrainer = data.icon == 132058;
+    self.isSpecialIcon = data.icon ~= 132053;
 end
 
 function DUIDialogOptionButtonMixin:SetGossipHint(data, hotkey)
@@ -419,7 +420,7 @@ function DUIDialogOptionButtonMixin:SetGossipHint(data, hotkey)
     self:SetButtonText(name, false);
     self:SetButtonArt(0);
     self:Enable();
-    self.isTrainer = false;
+    self.isSpecialIcon = false;
 end
 
 function DUIDialogOptionButtonMixin:FlagAsPreviousGossip(selectedGossipID)
@@ -448,15 +449,16 @@ function DUIDialogOptionButtonMixin:SetQuestTypeText(questInfo)
         typeText = L["Quest Type Trivial"];
     else
         if SHOW_QUEST_TYPE_TEXT then
-            if questInfo.repeatable then
+            if questInfo.repeatable and not (questInfo.isWeekly or questInfo.isDaily) then
                 typeText = L["Quest Type Repeatable"];
             else
                 local isRecurring, seconds = API.GetRecurringQuestTimeLeft(questInfo.questID);
-                if isRecurring and seconds then
+                if isRecurring and seconds and not questInfo.frequency == 3 then
+                    --The remaining time of meta quest isn't always accurate
                     typeText = API.SecondsToTime(seconds, true, true);
-                elseif questInfo.frequency == 1 then
+                elseif questInfo.isDaily == 1 then
                     typeText = L["Quest Frequency Daily"];
-                elseif questInfo.frequency == 2 then
+                elseif questInfo.isWeekly == 2 then
                     typeText = L["Quest Frequency Weekly"];
                 elseif questInfo.frequency == 3 or questInfo.isMeta then    --TWW Meta Quest
 
@@ -474,6 +476,11 @@ function DUIDialogOptionButtonMixin:SetQuestTypeText(questInfo)
             local frameWidth = questTypeFrame:GetContentWidth();
             self.hasQuestType = true;
             self.rightFrameWidth = Round(frameWidth);
+        end
+
+        local rightIcon = self:GetExtraObject("Warband");
+        if rightIcon then
+            rightIcon:SetPoint("RIGHT", self, "RIGHT", -48, 0);
         end
     else
         self:RemoveQuestTypeText();
@@ -507,6 +514,10 @@ function DUIDialogOptionButtonMixin:SetQuest(questInfo, hotkey)
     API.BuildQuestInfo(questInfo);
     self:SetQuestVisual(questInfo);
     self:SetButtonText(questInfo.title, true);
+
+    if API.IsQuestFlaggedCompletedOnAccount(self.questID) then
+        self:ShowWarbandCompletedIcon();
+    end
 
     local function OnQuestLoaded(questID)
         if self:IsQuestButton() and self.questID == questID and self:IsShown() then
@@ -545,7 +556,6 @@ function DUIDialogOptionButtonMixin:SetActiveQuest(questInfo, index, hotkey)
     self:SetQuest(questInfo, hotkey);
     self:Enable();
 end
-
 
 function DUIDialogOptionButtonMixin:SetGreetingAvailableQuest(questInfo, index, hotkey)
     --Handle QUEST_GREETING event
@@ -795,8 +805,8 @@ function DUIDialogOptionButtonMixin:Layout(largePadding)
         end
     end
 
-    if self.rightFrameWidth then
-        self.Name:SetWidth(self.baseWidth - self.rightFrameWidth - nameOffset - ANIM_OFFSET_H_BUTTON_HOVER);
+    if self.baseWidth then
+        self.Name:SetWidth(self.baseWidth - (self.rightFrameWidth or 0) - nameOffset - ANIM_OFFSET_H_BUTTON_HOVER);
     end
 
     local textHeight = self.Name:GetHeight();
@@ -898,6 +908,35 @@ end
 
 function DUIDialogOptionButtonMixin:SetOwner(owner)
     self.owner = owner;
+end
+
+do  --Extra Icons On OptionButton
+    function DUIDialogOptionButtonMixin:HasExtraObject(key)
+        return self:GetExtraObject(key) ~= nil
+    end
+
+    function DUIDialogOptionButtonMixin:GetExtraObject(key)
+        if self.extraObjects then
+            return self.extraObjects[key]
+        end
+    end
+
+    function DUIDialogOptionButtonMixin:SetExtraObject(key, object)
+        if not self.extraObjects then
+            self.extraObjects = {};
+        end
+        self.extraObjects[key] = object;
+    end
+
+    function DUIDialogOptionButtonMixin:ShowWarbandCompletedIcon()
+        if not self:HasExtraObject("Warband") then
+            local iconFrame = addon.DialogueUI.iconFramePool:Acquire();
+            self:SetExtraObject("Warband", iconFrame);
+            iconFrame:SetPoint("RIGHT", self, "RIGHT", -6, 0);
+            iconFrame:SetParent(self);
+            iconFrame:SetWarbandCompletedIcon(self.artID == 4);     --if true, the background is grey
+        end
+    end
 end
 
 function DUIDialogOptionButtonMixin:SetHotkey(hotkey)
@@ -1018,7 +1057,7 @@ end
 
 function DUIDialogHotkeyFrameMixin:SetKey(key)
     if key == "PRIMARY" then
-        key = GAME_PAD_CONFIRM_KEY or GetPrimaryControlKey();
+        key = GAME_PAD_CONFIRM_KEY or BindingUtil:GetActiveActionKey("Confirm");
     end
 
     if key ~= self.key then
@@ -1382,13 +1421,28 @@ function DUIDialogItemButtonMixin:UpdatePixel(scale)
 end
 
 function DUIDialogItemButtonMixin:OnClick(button)
-    if self.objectType == "item" and IsControlKeyDown() then
+    local modifiedAction;
+    if IsModifiedClick("CHATLINK") then
+        modifiedAction = 1;
+    elseif IsModifiedClick("DRESSUP") and self.objectType == "item" then
+        modifiedAction = 2;
+    end
+    if modifiedAction and not InCombatLockdown() then
         --I'm reluctant to add Dressing Room support due to potential taint (DressUpFrame), but if that's what the users want
         local link = GetQuestItemLink(self.type, self.index);
-        if link and API.IsDressableItem(link) and not InCombatLockdown() then
-            CallbackRegistry:Trigger("PlayerInteraction.ShowUI", true);
-            DressUpVisual(link);
-            return
+        if link then
+            if modifiedAction == 1 then
+                CallbackRegistry:Trigger("PlayerInteraction.ShowUI", true);
+                if ChatEdit_InsertLink(link) then
+                    return
+                end
+            elseif modifiedAction == 2 then
+                if API.IsDressableItem(link) then
+                    CallbackRegistry:Trigger("PlayerInteraction.ShowUI", true);
+                    DressUpVisual(link);
+                    return
+                end
+            end
         end
     end
 
@@ -1544,11 +1598,13 @@ function DUIDialogItemButtonMixin:SetItem(questInfoType, index)
     self:SetItemCount(count);
 
     local isEquippable = itemID and IsEquippableItem(itemID);
+    local isCosmetic;
     local itemOverlayID;
 
     if not isUsable then
         itemOverlayID = "alert";
     elseif itemID and IsCosmeticItem(itemID) then
+        isCosmetic = true;
         itemOverlayID = "cosmetic";
     elseif itemID and isEquippable then
         itemOverlayID = quality;
@@ -1560,7 +1616,7 @@ function DUIDialogItemButtonMixin:SetItem(questInfoType, index)
         --Equipment's count is always 1. No itemID in Classic
         --Inventory Itemlink may not be immediately available
         self.isEquippable = true;
-        if isUsable and (not self:DoesButtonHaveMarker("upgrade")) then
+        if isUsable and (not isCosmetic) and (not self:DoesButtonHaveMarker("upgrade")) then
             local isUpgrade, isReady = API.IsRewardItemUpgrade(questInfoType, index);
             if isReady then
                 if isUpgrade then
@@ -2219,12 +2275,10 @@ end
 do  --Icon Frame Overlay
     DUIDialogIconFrameMixin = {};
 
-    local inOutSine = addon.EasingFunctions.outSine;
-
     local function IconAnimation_FlyUp(self, elapsed)
         self.t = self.t + elapsed;
         if self.t > 0 then
-            self.offsetY = inOutSine(self.t, self.fromY, self.toY, self.duration);
+            self.offsetY = Easing_UpgradeArrow(self.t, self.fromY, self.toY, self.duration);
             self.alpha = self.alpha + 4*elapsed;
 
             if self.alpha > 1 then
@@ -2258,6 +2312,7 @@ do  --Icon Frame Overlay
         self:ClearAllPoints();
         self:Hide();
         self.Icon:SetTexture(nil);
+        self:SetUsingParentLevel(false);
         if self.t then
             self:SetScript("OnUpdate", nil);
             self:SetAlpha(1);
@@ -2277,12 +2332,14 @@ do  --Icon Frame Overlay
         self:SetSize(14, 14);
         self:AllPoints(true);
         self.Icon:SetTexture(ICON_PATH.."CurrencyOverflow.png");
+        self.Icon:SetTexCoord(0, 1, 0, 1);
     end
 
     function DUIDialogIconFrameMixin:SetHighestSellPrice()
         self:SetSize(15, 15);
         self:AllPoints(true);
         self.Icon:SetTexture(ICON_PATH.."Coin-Gold.png");
+        self.Icon:SetTexCoord(0, 1, 0, 1);
     end
 
     function DUIDialogIconFrameMixin:SetItemIsUpgrade(playAnimation)
@@ -2291,6 +2348,7 @@ do  --Icon Frame Overlay
         self.Icon:SetSize(32, 32);
         self.Icon:SetTexture(ICON_PATH.."ItemIsUpgrade.png");
         self.Icon:SetPoint("CENTER", self, "CENTER", 0, 0);
+        self.Icon:SetTexCoord(0, 1, 0, 1);
         if playAnimation then
             self.t = -0.5;
             self.alpha = 0;
@@ -2299,6 +2357,19 @@ do  --Icon Frame Overlay
             self.duration = 0.5;
             self:SetAlpha(0);
             self:SetScript("OnUpdate", IconAnimation_FlyUp);
+        end
+    end
+
+    function DUIDialogIconFrameMixin:SetWarbandCompletedIcon(isGreyBackground)
+        local size = 2*BUTTON_PADDING_LARGE + 10;
+        self:AllPoints(true);
+        self:SetSize(size, size);
+        self:SetUsingParentLevel(true);
+        self.Icon:SetTexture(ThemeUtil:GetTextureFile("WarbandCompleted.png"));
+        if isGreyBackground then
+            self.Icon:SetTexCoord(0.5, 1, 0, 1);
+        else
+            self.Icon:SetTexCoord(0, 0.5, 0, 1);
         end
     end
 end
@@ -2633,7 +2704,7 @@ do  --Settings, CallbackRegistry
         INPUT_DEVICE_GAME_PAD = dbValue ~= 1;
 
         if INPUT_DEVICE_GAME_PAD then
-            ANIM_OFFSET_H_BUTTON_HOVER = 8;
+            --ANIM_OFFSET_H_BUTTON_HOVER = 8;
             local prefix;
             if dbValue == 2 then
                 prefix = "XBOX_";
@@ -2659,7 +2730,7 @@ do  --Settings, CallbackRegistry
             HotkeyIcons.Action = HotkeyIcons[prefix.."PAD3"];
             HotkeyIcons.Mod = HotkeyIcons[prefix.."PAD4"];
         else
-            ANIM_OFFSET_H_BUTTON_HOVER = 8;
+            --ANIM_OFFSET_H_BUTTON_HOVER = 8;
             HotkeyIcons.Esc = nil;
             HotkeyIcons.Shift = nil;
             GAME_PAD_CONFIRM_KEY = nil;
@@ -2700,4 +2771,15 @@ do  --Settings, CallbackRegistry
         CallbackRegistry:Trigger("PostFontSizeChanged");
     end
     CallbackRegistry:Register("FontSizeChanged", OnFontSizeChanged);
+
+
+    CallbackRegistry:Register("SettingChanged.DisableUIMotion", function(dbValue)
+        if dbValue then
+            Easing_UpgradeArrow = addon.EasingFunctions.none;
+            ANIM_OFFSET_H_BUTTON_HOVER = 0;
+        else
+            Easing_UpgradeArrow = addon.EasingFunctions.outSine;
+            ANIM_OFFSET_H_BUTTON_HOVER = 8;
+        end
+    end);
 end

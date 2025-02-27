@@ -6,7 +6,7 @@ local Class = ns.Class
 local L = ns.locale
 local Map = ns.Map
 
-local Node = ns.node.Node
+local Collectible = ns.node.Collectible
 
 local Achievement = ns.reward.Achievement
 local Buff = ns.reward.Buff
@@ -35,28 +35,19 @@ local ahnQiraj = ns.maps[327] or Map({id = 327, settings = false})
 local stormheim = ns.maps[634] or Map({id = 634, settings = false})
 local maldraxxus = ns.maps[1536] or Map({id = 1536, settings = false})
 
+local dornogal = ns.maps[2339] or Map({id = 2339, settings = true})
+
 -------------------------------------------------------------------------------
 --------------------------- SECRETS OF AZEROTH NODE ---------------------------
 -------------------------------------------------------------------------------
 
-local SecretOfAzeroth = Class('SecretOfAzeroth', Node, {
+local SecretOfAzeroth = Class('SecretOfAzeroth', Collectible, {
     icon = 'peg_gn',
     scale = 2,
     group = ns.groups.SECRETS_OF_AZEROTH
 }) -- Secret of Azeroth
 
--------------------------------------------------------------------------------
-------------------------------- ALYX START NODE -------------------------------
--------------------------------------------------------------------------------
-
 local START_QUEST = 84617
-
-tanaris.nodes[63025024] = SecretOfAzeroth({
-    label = '{npc:226683}',
-    note = L['alyx_kickoff_note'],
-    quest = START_QUEST,
-    requires = ns.requirement.Quest(84521) -- ![Thoughtful Pursuits]
-}) -- Alyx
 
 -------------------------------------------------------------------------------
 ----------------------------- CELEBRATION CRATES ------------------------------
@@ -233,19 +224,22 @@ ahnQiraj.nodes[44559008] = SecretOfAzeroth({
 }) -- Mysterious Bones
 
 -------------------------------------------------------------------------------
---------------------------- CELEBRATION CRATE LIST ----------------------------
+------------------------ ALYX - CELEBRATION CRATE LIST ------------------------
 -------------------------------------------------------------------------------
 
-local CrateList = Class('CrateList', SecretOfAzeroth, {
-    label = L['celebration_crates_label'],
-    questDeps = START_QUEST,
+local Alyx = Class('Alyx', SecretOfAzeroth, {
+    label = '{npc:226683}',
     rewards = {
-        Achievement({id = 40979, criteria = {qty = true, id = 1}}) -- No Crate Left Behind
+        Achievement({
+            id = 40979,
+            criteria = {qty = true, id = 1, suffix = L['crates_found']}
+        }) -- No Crate Left Behind
     }
-})
+}) -- Alyx
 
-function CrateList.getters:note()
-    local note = L['celebration_crates_note'] .. '\n'
+function Alyx.getters:note()
+    local note = L['alyx_kickoff_note'] .. '\n\n'
+    note = note .. L['celebration_crates_note'] .. '\n'
     for num, crate in ipairs(CELEBRATION_CRATES) do
         local mName = C_Map.GetMapInfo(crate.map.id).name
         local pName = C_Map.GetMapInfo(crate.parentMapID).name
@@ -255,4 +249,4 @@ function CrateList.getters:note()
     return note
 end
 
-tanaris.nodes[66644537] = CrateList()
+dornogal.nodes[50343870] = Alyx()

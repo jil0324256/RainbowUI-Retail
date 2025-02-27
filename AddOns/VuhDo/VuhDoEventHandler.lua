@@ -334,6 +334,27 @@ end
 
 
 --
+local function VUHDO_loadCurrentKeyLayout()
+
+	if not VUHDO_CONFIG then
+		return;
+	end
+
+	local tName = VUHDO_SPEC_LAYOUTS["selected"];
+
+	if (tName or "") ~= "" then
+		if VUHDO_SPELL_LAYOUTS and VUHDO_SPELL_LAYOUTS[tName] then
+			VUHDO_activateLayoutNoInit(tName);
+		else
+			VUHDO_Msg("Error: Currently selected key layout \"" .. tName .. "\" doesn't exist.", 1, 0.4, 0.4);
+		end
+	end
+
+end
+
+
+
+--
 local function VUHDO_loadDefaultProfile()
 	if not VUHDO_CONFIG then 
 		return;
@@ -391,6 +412,8 @@ local function VUHDO_init()
 	local tHasPerCharacterConfig = _G["VUHDO_CONFIG"] and true or false;
 
 	VUHDO_loadCurrentProfile(); -- 1. Diese Reihenfolge scheint wichtig zu sein, erzeugt
+	VUHDO_loadCurrentKeyLayout();
+
 	VUHDO_loadVariables(); -- 2. umgekehrt undefiniertes Verhalten (VUHDO_CONFIG ist nil etc.)
 	VUHDO_initAllBurstCaches();
 	VUHDO_initDefaultProfiles();
@@ -858,7 +881,7 @@ function VUHDO_slashCmd(aCommand)
 	if strfind(tCommandWord, "opt") then
 		if VuhDoNewOptionsTabbedFrame then
 			if InCombatLockdown() and not VuhDoNewOptionsTabbedFrame:IsShown() then
-				VUHDO_Msg("Options not available in combat!", 1, 0.4, 0.4);
+				VUHDO_Msg("戰鬥中無法使用設定選項!", 1, 0.4, 0.4);
 			else
 				VUHDO_CURR_LAYOUT = VUHDO_SPEC_LAYOUTS["selected"];
 				VUHDO_CURRENT_PROFILE = VUHDO_CONFIG["CURRENT_PROFILE"];

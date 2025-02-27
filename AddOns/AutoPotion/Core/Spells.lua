@@ -9,7 +9,7 @@ ham.fortitudeOfTheBear = 388035
 ham.lastStand = 12975
 ham.bitterImmunity = 383762
 ham.desperatePrayer = 19236
-ham.expelHarm = 322101
+ham.expelHarm = 451968
 ham.healingElixir = 122281
 ham.darkPact = 108416
 ham.vampiricBlood = 55233
@@ -25,6 +25,8 @@ ham.giftOfTheNaaruPriest = 59544
 ham.giftOfTheNaaruRogue = 370626
 ham.giftOfTheNaaruShaman = 59547
 ham.giftOfTheNaaruWarrior = 28880
+
+ham.bagOfTricks = 312411
 
 ham.supportedSpells = {}
 table.insert(ham.supportedSpells, ham.crimsonVialSpell)
@@ -48,6 +50,7 @@ table.insert(ham.supportedSpells, ham.giftOfTheNaaruPriest)
 table.insert(ham.supportedSpells, ham.giftOfTheNaaruRogue)
 table.insert(ham.supportedSpells, ham.giftOfTheNaaruShaman)
 table.insert(ham.supportedSpells, ham.giftOfTheNaaruWarrior)
+table.insert(ham.supportedSpells, ham.bagOfTricks)
 
 
 ham.Spell = {}

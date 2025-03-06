@@ -1,7 +1,7 @@
 # Baganator
 
-## [653](https://github.com/Baganator/Baganator/tree/653) (2025-02-25)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/652...653) 
+## [657](https://github.com/Baganator/Baganator/tree/657) (2025-03-05)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/656...657) 
 
-- [Fixes #432] Workaround to prevent Masque bug breaking bag view  
-- [Fixes #430] Update item level widget after entering/leaving timewalking raid  
+- Single bag: Fix issue causing too many refreshes of bag items  
+- Single bags: Fix widget settings not applying if bags closed  
